@@ -115,6 +115,15 @@ jobs:
             --include-symbols \
             --include-source
 
+      - name: Pack meta package
+        run: |
+          dotnet pack testprog-meta/testprog-meta.csproj \
+            --configuration Release \
+            --output artifacts/nuget \
+            -p:PackageVersion=${{ steps.version.outputs.version }} \
+            -p:Version=${{ steps.version.outputs.version }} \
+            -p:ContinuousIntegrationBuild=true
+
       - name: Push NuGet packages
         env:
           NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
