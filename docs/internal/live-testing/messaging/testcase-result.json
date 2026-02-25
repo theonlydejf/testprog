@@ -1,0 +1,14 @@
+{
+    "v": 2,
+    "type": "testcase-result",
+    "sessionToken": "ae2f8c657da44fd1a2312a3bdc5d6ca6",
+    "requestId": "cf6bb35f4f534f46a3d560f3f8bb9baa",
+    "sentAtUtc": "2026-02-17T12:02:01Z",
+    "payload":
+    {
+        "testcaseId": "sum-001",
+        "status": "passed",
+        "reasonCode": null,
+        "reasonDetail": null
+    }
+}

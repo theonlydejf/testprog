@@ -1,0 +1,12 @@
+{
+    "v": 2,
+    "type": "client-hello",
+    "requestId": "91f60e8b6f4840db87e9c42cc6f5dd11",
+    "sentAtUtc": "2026-02-17T12:01:10Z",
+    "payload":
+    {
+        "studentId": "novakj",
+        "displayName": "Jan Novak",
+        "clientVersion": "1.0.0"
+    }
+}

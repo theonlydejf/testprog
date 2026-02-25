@@ -1,0 +1,12 @@
+{
+    "v": 2,
+    "type": "stop",
+    "sessionToken": "ae2f8c657da44fd1a2312a3bdc5d6ca6",
+    "requestId": "43e856d28d1646ed9aa7a19f89385d20",
+    "sentAtUtc": "2026-02-17T12:05:00Z",
+    "payload":
+    {
+        "reasonCode": "client-stop",
+        "reasonDetail": "Student cancelled the run."
+    }
+}

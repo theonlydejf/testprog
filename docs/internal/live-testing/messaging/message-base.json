@@ -1,0 +1,8 @@
+{
+    "v": 2,
+    "type": "type",
+    "sessionToken": "optional-before-server-hello",
+    "requestId": "3a32f8e96ef747b2b8a5d4f95ec5a85f",
+    "sentAtUtc": "2026-02-17T12:00:00Z",
+    "payload": {}
+}
