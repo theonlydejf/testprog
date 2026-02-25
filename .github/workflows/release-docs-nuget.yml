@@ -3,10 +3,14 @@ name: Release Docs and NuGet
 on:
   push:
     tags:
-      - 'v*.*.*'
+      - "v*.*.*"
 
 permissions:
   contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   build-docs:
@@ -24,7 +28,7 @@ jobs:
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '9.0.x'
+          dotnet-version: "9.0.x"
 
       - name: Install DocFX
         run: dotnet tool install --global docfx --version 2.78.3
@@ -70,7 +74,7 @@ jobs:
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '9.0.x'
+          dotnet-version: "9.0.x"
 
       - name: Restore
         run: dotnet restore testprog.sln
@@ -90,7 +94,8 @@ jobs:
             -p:PackageVersion=${{ steps.version.outputs.version }} \
             -p:Version=${{ steps.version.outputs.version }} \
             -p:ContinuousIntegrationBuild=true \
-            --include-symbols \
+            -p:IncludeSymbols=true \
+            -p:SymbolPackageFormat=snupkg \
             --include-source
 
       - name: Pack client
@@ -101,7 +106,8 @@ jobs:
             -p:PackageVersion=${{ steps.version.outputs.version }} \
             -p:Version=${{ steps.version.outputs.version }} \
             -p:ContinuousIntegrationBuild=true \
-            --include-symbols \
+            -p:IncludeSymbols=true \
+            -p:SymbolPackageFormat=snupkg \
             --include-source
 
       - name: Pack server
@@ -112,7 +118,8 @@ jobs:
             -p:PackageVersion=${{ steps.version.outputs.version }} \
             -p:Version=${{ steps.version.outputs.version }} \
             -p:ContinuousIntegrationBuild=true \
-            --include-symbols \
+            -p:IncludeSymbols=true \
+            -p:SymbolPackageFormat=snupkg \
             --include-source
 
       - name: Pack meta package
@@ -124,6 +131,11 @@ jobs:
             -p:Version=${{ steps.version.outputs.version }} \
             -p:ContinuousIntegrationBuild=true
 
+      - name: List packed artifacts
+        run: |
+          echo "== artifacts/nuget =="
+          ls -lah artifacts/nuget || true
+
       - name: Push NuGet packages
         env:
           NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
@@ -133,10 +145,17 @@ jobs:
             --api-key "$NUGET_API_KEY" \
             --skip-duplicate
 
-      - name: Push symbol packages
+      - name: Push symbol packages (if present)
         env:
           NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
         run: |
+          shopt -s nullglob
+          files=(artifacts/nuget/*.snupkg)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No .snupkg files found; skipping symbol push."
+            exit 0
+          fi
+
           dotnet nuget push "artifacts/nuget/*.snupkg" \
             --source "https://api.nuget.org/v3/index.json" \
             --api-key "$NUGET_API_KEY" \

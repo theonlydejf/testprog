@@ -1,7 +1,7 @@
 # Student: Jak použít testovací klient krok za krokem
 
 Tento návod předpokládá, že už máte ve svém projektu přidanou klientskou knihovnu.
-Pokud ne, otevřete nejdřív [Student - Přidání knihovny (připravuje se)](student-add-library.md).
+Pokud ne, otevřete nejdřív [Student - Přidání knihovny](student-add-library.md).
 
 ## Co budete potřebovat
 

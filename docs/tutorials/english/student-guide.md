@@ -1,7 +1,7 @@
 # Student Guide: How to use the testing client step by step
 
 This guide assumes the client library is already added to your project.
-If not, open [Student - Adding the Library (coming soon)](student-add-library.md) first.
+If not, open [Student - Add the Library](student-add-library.md) first.
 
 ## What you need
 
