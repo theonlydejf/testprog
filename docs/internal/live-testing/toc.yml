@@ -1,15 +1,15 @@
-- name: Prehled
+- name: Overview
   href: index.md
-- name: Server Config v1
+- name: Server Configuration v1
   href: server-config-v1.md
+- name: Communication Protocol v2
+  href: comm-protocol.md
 - name: Server API v1
   href: server-api-v1.md
 - name: Client API v1
   href: client-api-v1.md
 - name: Server CLI v1
   href: server-cli-v1.md
-- name: Comm Protocol
-  href: comm-protocol.md
 - name: Sum Smoke Test
   href: sum-smoke-test.md
 - name: Messaging

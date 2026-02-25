@@ -24,6 +24,7 @@
           "guides/**/*.md",
           "guides/toc.yml",
           "tutorials/**/*.md",
+          "tutorials/**/*.yml",
           "tutorials/toc.yml",
           "api/index.md",
           "api/*.yml",

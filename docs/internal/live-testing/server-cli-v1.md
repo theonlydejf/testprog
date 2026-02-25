@@ -1,24 +1,53 @@
-## Server CLI v1
+# Server CLI v1
 
-### Usage
+`server-cli` is the operational entry point for instructors.
+
+## Command line
+
 ```bash
 dotnet run --project server-cli -- --config ./server-config.json
+```
+
+Optional log output file:
+
+```bash
 dotnet run --project server-cli -- --config ./server-config.json --log-file ./logs/server.log
 ```
 
-### Features
-- live dashboard of students currently attempting tests
-- per-student status (`Running`, `Completed`, `Completed (partial)`, `Rejected`, `Stopped`, `Error`)
-- per-student counters (`passed/failed/total`)
-- shows current group name for each student
-- optional whitelist support from config (`server.studentIdWhitelist`)
-- runtime event logging into a log file
+## Runtime capabilities
 
-### Controls
-- `Ctrl+C` triggers graceful stop
+- live dashboard with per-student state
+- pass/fail counters per active session
+- group-level progress visibility
+- whitelist enforcement via server config
+- structured runtime event logging
 
-### Log format
-- one line per runtime event with timestamp, student id, session token, group, testcase and reason fields
+## Student states shown in dashboard
 
-### Quick smoke test
-- end-to-end example (server config + golden standard + student client): `docs/internal/live-testing/sum-smoke-test.md`
+- `Running`
+- `Completed`
+- `Completed (partial)`
+- `Rejected`
+- `Stopped`
+- `Error`
+
+## Log record content
+
+Each runtime event can include:
+
+- UTC timestamp
+- student identity
+- remote endpoint
+- session token
+- group/testcase identifiers
+- reason code/detail for failure or stop events
+
+## Operational notes
+
+- `Ctrl+C` triggers graceful shutdown
+- active sessions are drained before full process exit
+
+## Related references
+
+- [Server Configuration v1](server-config-v1.md)
+- [Sum Smoke Test](sum-smoke-test.md)

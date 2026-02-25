@@ -1,14 +1,12 @@
 # API Reference
 
-Tato sekce je generovana z projektu:
+This section is generated from the public types in:
 
 - `messenger/messenger.csproj`
 - `client/client.csproj`
 - `server/server.csproj`
 
-Po spusteni `docfx metadata docfx.json` se v teto slozce vygeneruji YAML soubory a TOC s API cleny.
-
-Hlavni vstupni body:
+## Primary entry points
 
 - `testprog.client.StudentConsoleTestRunner`
 - `testprog.client.StudentClientOptions`

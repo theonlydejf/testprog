@@ -1,0 +1,14 @@
+- name: Přehled
+  href: index.md
+- name: Student
+  href: student-guide.md
+- name: Student - Přidání knihovny (připravuje se)
+  href: student-add-library.md
+- name: Vyučující - Přehled
+  href: instructor-overview.md
+- name: Vyučující - server-cli
+  href: instructor-server-cli.md
+- name: Vyučující - Konfigurace (detailně)
+  href: instructor-configuration.md
+- name: Vyučující - Server programově
+  href: instructor-programmatic-server.md

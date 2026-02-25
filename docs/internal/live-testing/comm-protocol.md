@@ -1,17 +1,26 @@
-## Communication Protocol v2 (draft)
+# Communication Protocol v2
 
-### Transport
-- UDP multicast: service discovery only (`server-wanted`, `server-available`)
-- TCP: full test session and all test messages
-- Session behavior: fail-fast on connection loss
+This document describes the wire protocol used by live testing clients and servers.
 
-### TCP framing
-- Each TCP message is a single JSON envelope encoded in UTF-8
-- Frame format: 4-byte signed big-endian message length, followed by JSON bytes
-- Max frame size on client side: 1 MiB
+## Transports
 
-### Envelope
-All TCP messages share one envelope:
+- UDP multicast: discovery (`server-wanted`, `server-available`)
+- TCP: handshake, testcase exchange, progress, and stop/error control
+
+## TCP framing
+
+Each TCP frame is one UTF-8 JSON envelope.
+
+Frame layout:
+
+1. 4-byte signed big-endian message length
+2. JSON payload bytes
+
+Client-side frame limit is 1 MiB.
+
+## Envelope format
+
+All TCP messages use the same envelope:
 
 ```json
 {
@@ -24,24 +33,34 @@ All TCP messages share one envelope:
 }
 ```
 
-### Session flow
-1. `client -> broadcast`: `server-wanted`
-2. `server -> client`: `server-available` (contains TCP host and port)
-3. `client -> server (TCP)`: `client-hello` (`studentId`, `displayName`)
-4. `server -> client`: `server-hello` (issues `sessionToken`)
-5. `server -> client`: `test-begin`
-6. Repeat for each group:
-7. `server -> client`: `testgroup-start`
-8. Repeat for each testcase:
-9. `server -> client`: `testcase`
-10. `client -> server`: `testcase-solved`
-11. `server -> client`: `testcase-result` (`passed`/`failed`)
-12. `server -> client`: `testgroup-end`
-13. `server -> client`: `test-end`
+Envelope fields:
 
-### Keepalive and stop
-- `server -> client`: optional `ping`
-- `client -> server`: `pong` (response to ping)
-- If no message arrives within client heartbeat timeout, client stops the session (`reasonCode: timeout`) and fails fast
-- `client/server -> peer`: `stop` (`reasonCode`, `reasonDetail`)
-- `server -> client`: `error` for protocol/internal failures
+- `v`: protocol version (`2`)
+- `type`: message type name
+- `sessionToken`: required after server handshake
+- `requestId`: correlation identifier
+- `sentAtUtc`: sender timestamp
+- `payload`: message-specific object
+
+## Session lifecycle
+
+1. client sends UDP `server-wanted`
+2. server replies UDP `server-available`
+3. client opens TCP and sends `client-hello`
+4. server responds `server-hello` with `sessionToken`
+5. server sends `test-begin`
+6. per group: `testgroup-start` ... `testgroup-end`
+7. per testcase: `testcase` -> `testcase-solved` -> `testcase-result`
+8. server sends `test-end`
+
+## Keepalive and termination
+
+- server may send `ping`
+- client responds with `pong`
+- if heartbeat timeout is exceeded, client fails fast
+- either side may send `stop` with `reasonCode` and optional `reasonDetail`
+- server may send `error` on protocol/runtime failure
+
+## Message catalog
+
+See [Messaging Overview](messaging/message-list.md) for message-by-message semantics and sample payload links.

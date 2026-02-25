@@ -1,10 +1,10 @@
-- name: Domu
+- name: Home
   href: index.md
-- name: Zacatek
+- name: Overview
   href: guides/
-- name: Tutorialy
+- name: Tutorials
   href: tutorials/
 - name: API Reference
   href: api/
-- name: Internal Live Testing
+- name: Internal Specifications
   href: internal/live-testing/

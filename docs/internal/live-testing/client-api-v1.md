@@ -1,12 +1,11 @@
-## Client API v1 draft
+# Client API v1
 
-### Goal
-Keep student integration as simple as possible. Student provides only a solver function.
+Client integration is intentionally minimal for student usage while still exposing a lower-level async API.
 
-### Student-friendly sync console API (recommended)
+## Recommended student API
+
 ```csharp
 using testprog.client;
-using testprog.messenger;
 
 StudentClientOptions options = new()
 {
@@ -18,19 +17,21 @@ int exitCode = StudentConsoleTestRunner.RunWithExitCode(options, input =>
 {
     int a = input.GetInt("a");
     int b = input.GetInt("b");
-    return new { result = a + b };
+    return a + b;
 });
 
 return exitCode;
 ```
 
-This prints live progress to console:
-- test run start
-- each test group start/end
-- each testcase result (pass/fail)
-- final summary
+Behavior of `StudentConsoleTestRunner`:
 
-### Advanced async API (low-level)
+- connects to server (auto discovery or direct host)
+- prints progress for groups and testcases
+- prints final pass/fail summary
+- returns process-friendly exit code
+
+## Advanced async API
+
 ```csharp
 await using ITestProgClient client = await TestProgClient.ConnectAsync(new TestProgClientOptions
 {
@@ -40,10 +41,11 @@ await using ITestProgClient client = await TestProgClient.ConnectAsync(new TestP
 
 TestRunSummary summary = await client.RunAsync(
     input => new { result = input.GetInt("a") + input.GetInt("b") },
-    progress => Console.WriteLine($"{progress.Kind} {progress.TestCaseId}"));
+    progress => Console.WriteLine($"{progress.Kind}: {progress.TestCaseId}"));
 ```
 
-### Input helpers
+## Input helper methods (`TestInput`)
+
 - `GetInt(string key)`
 - `GetString(string key)`
 - `GetBool(string key)`
@@ -52,10 +54,14 @@ TestRunSummary summary = await client.RunAsync(
 - `GetFirstString()`
 - `Parse<T>()`
 
-### Behavior
-- Discovery: UDP multicast
-- Session: TCP
-- Auth/session correlation: server-issued `sessionToken`
-- Optional progress callback on each group/testcase transition
-- TCP wire format: 4-byte length prefix + UTF-8 JSON envelope
-- Connection loss: fail-fast
+## Discovery and connection
+
+- discovery mode `Auto`: UDP multicast endpoint resolution
+- discovery mode `DirectTcp`: direct host/port connection
+- handshake returns `sessionToken`, required for subsequent messages
+
+## Related references
+
+- [Communication Protocol v2](comm-protocol.md)
+- [Messaging Overview](messaging/message-list.md)
+- [API Reference](../../api/index.md)

@@ -1,9 +1,9 @@
-## Server API v1 draft
+# Server API v1
 
-### Goal
-Teacher defines test groups + testcases and runs one host service.
+The server API is centered around `TestServerHost`, `TestServerOptions`, and `TestSuiteDefinition`.
 
-### Example
+## Main usage
+
 ```csharp
 using Newtonsoft.Json.Linq;
 using testprog.server;
@@ -22,7 +22,7 @@ TestSuiteDefinition suite = new()
                 {
                     TestCaseId = "sum-001",
                     Input = JObject.FromObject(new { a = 2, b = 3 }),
-                    ExpectedOutput = JObject.FromObject(new { result = 5 })
+                    ExpectedOutput = new JValue(5)
                 },
                 new()
                 {
@@ -50,25 +50,26 @@ await using TestServerHost host = new(options, suite);
 await host.RunAsync(cancellationToken);
 ```
 
-### Comparison modes
-- `StrictJson`: deep JSON equality (`JToken.DeepEquals`)
-- `NormalizedText`: compares minified JSON after recursively trimming all string values
+## Key model constraints
 
-### Golden standard testcases
-- testcase can use `ExpectedOutput` or `GoldenStandard` (exactly one)
-- golden standard source is compiled by the server at startup
-- required signature: `public static object Solve(JObject input)`
+- a group must define exactly one source: `TestCases` or `Randomized`
+- a testcase must define exactly one expected source: `ExpectedOutput` or `GoldenStandard`
+- random groups require both `GoldenStandard` and `InputGenerator`
 
-### Randomized groups
-- group can use `Randomized` instead of `TestCases`
-- randomized group generates `Count` testcase inputs at runtime
-- expected output is always resolved via group `GoldenStandard`
-- input generator modes:
-  - `Default`: configured list of integer fields with min/max range
-  - `SourceFile`: compiled method `public static object Generate(Random random, int testcaseIndex)`
+## Comparison modes
 
-### Runtime behavior
-- UDP multicast discovery (`server-wanted` -> `server-available`)
-- TCP session with length-prefixed JSON envelopes
-- per testcase flow: `testcase` -> `testcase-solved` -> `testcase-result`
-- fail-fast on timeout / invalid protocol messages
+- `StrictJson`: deep token equality
+- `NormalizedText`: compares normalized text representation
+
+## Runtime behavior
+
+- compiles source-file contracts at startup (golden standards and source generators)
+- uses UDP discovery plus TCP sessions
+- enforces timeouts and protocol validity
+- emits runtime events via `Action<TestServerRuntimeEvent>` callback
+
+## Related references
+
+- [Server Configuration v1](server-config-v1.md)
+- [Server CLI v1](server-cli-v1.md)
+- [API Reference](../../api/index.md)

@@ -1,69 +1,42 @@
-## Sum Smoke Test (end-to-end)
+# Sum Smoke Test
 
-This is a minimal end-to-end example to verify server + client integration on a simple task:
-add two integers (`a + b`).
-In this example, student solver returns a plain integer output.
+This scenario verifies end-to-end server/client integration on a basic `a + b` task.
 
-### Files used
-- server config: `docs/internal/live-testing/examples/sum-smoke/server-config.v1.json`
+## Assets
+
+- config: `docs/internal/live-testing/examples/sum-smoke/server-config.v1.json`
 - golden standard: `docs/internal/live-testing/examples/sum-smoke/sum-golden-standard.cs`
-- random input generator script: `docs/internal/live-testing/examples/sum-smoke/sum-random-input-generator.cs`
-- student sample client: `examples/sum-student-client/Program.cs`
+- random input generator: `docs/internal/live-testing/examples/sum-smoke/sum-random-input-generator.cs`
+- sample client: `examples/sum-student-client/Program.cs`
 
-The config includes:
-- testcase with `expectedOutput`
-- testcase with `goldenStandard`
-- random group with generated testcases (`default` input generator + `goldenStandard`)
-- random group with generated testcases (`source-file` input generator + `goldenStandard`)
+The suite includes:
 
-### 1. Start the server
-Run from repository root:
+- static testcase with `expectedOutput`
+- static testcase with `goldenStandard`
+- random group with `default` input generator
+- random group with `source-file` input generator
 
-```bash
-dotnet run --project server-cli -- --config docs/internal/live-testing/examples/sum-smoke/server-config.v1.json
-```
+## Execution
 
-Optional with explicit log file:
+Start server:
 
 ```bash
-dotnet run --project server-cli -- --config docs/internal/live-testing/examples/sum-smoke/server-config.v1.json --log-file logs/sum-smoke.log
+dotnet run --project server-cli -- \
+  --config docs/internal/live-testing/examples/sum-smoke/server-config.v1.json
 ```
 
-### 2. Start the student client
-Open a second terminal and run:
-
-```bash
-dotnet run --project examples/sum-student-client
-```
-
-Optional arguments:
-- arg1: `studentId`
-- arg2: `displayName`
-- arg3: `serverHost`
-- arg4: `serverPort`
-
-Example:
+Run sample client:
 
 ```bash
 dotnet run --project examples/sum-student-client -- novakj "Jan Novak" 127.0.0.1 15000
 ```
 
-### 3. Expected result
-Client should report:
-- `PASS sum-expected-001`
-- `PASS sum-golden-001`
-- `PASS sum-random-1`
-- `PASS sum-random-2`
-- `PASS sum-random-3`
-- `PASS sum-random-script-1`
-- `PASS sum-random-script-2`
-- `PASS sum-random-script-3`
-- final summary with `Failed: 0`
+## Expected result
 
-### Troubleshooting
-- `Fatal error: Address already in use` means TCP or discovery port is occupied.
-- Update `tcpPort` and `discoveryPort` in `docs/internal/live-testing/examples/sum-smoke/server-config.v1.json`.
-- If you change `tcpPort`, pass the same port as client arg4 (or update default in `examples/sum-student-client/Program.cs`).
+Client output should contain only passing testcases and final summary `Failed: 0`.
 
-### 4. Stop the server
-Use `Ctrl+C` in the server terminal.
+## Typical issues
+
+- occupied TCP/discovery ports
+- mismatch between configured server port and client port argument
+- stale host override when server is running on another address

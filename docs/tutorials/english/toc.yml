@@ -1,0 +1,14 @@
+- name: Overview
+  href: index.md
+- name: Student Guide
+  href: student-guide.md
+- name: Student - Adding the Library (coming soon)
+  href: student-add-library.md
+- name: Instructor Overview
+  href: instructor-overview.md
+- name: Instructor - server-cli
+  href: instructor-server-cli.md
+- name: Instructor - Configuration (detailed)
+  href: instructor-configuration.md
+- name: Instructor - Programmatic Server
+  href: instructor-programmatic-server.md

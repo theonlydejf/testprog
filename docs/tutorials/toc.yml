@@ -1,4 +1,6 @@
-- name: Tutorial Česky (s diakritikou)
-  href: tutorial-cs.md
-- name: Tutorial English
-  href: tutorial-en.md
+- name: Overview
+  href: index.md
+- name: Czech
+  href: czech/
+- name: English
+  href: english/

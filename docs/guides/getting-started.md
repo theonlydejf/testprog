@@ -1,50 +1,36 @@
-# Rychly start
+# Getting Started
 
-Minimalni postup pro lokalni vyvoj a testovani.
+This guide covers the quickest path to run the full `testprog` flow locally.
 
-## Pozadavky
+## Prerequisites
 
-- `.NET SDK 7.0`
-- `docfx` (global tool nebo lokalni binarka)
+- .NET SDK 7.0+
+- repository cloned locally
 
-## Build a test projektu
+## Build and test
 
 ```bash
-# z korene repozitare
-
 dotnet build testprog.sln
 dotnet test unit-tests/unit-tests.csproj
 ```
 
-## Spusteni serveru (CLI)
+## Run the server
 
 ```bash
 dotnet run --project server-cli -- \
   --config docs/internal/live-testing/examples/sum-smoke/server-config.v1.json
 ```
 
-Volitelne s logem:
+## Run the sample student client
+
+In another terminal:
 
 ```bash
-dotnet run --project server-cli -- \
-  --config docs/internal/live-testing/examples/sum-smoke/server-config.v1.json \
-  --log-file logs/sum-smoke.log
+dotnet run --project examples/sum-student-client -- novakj "Jan Novak" 127.0.0.1 15000
 ```
 
-## Spusteni studentskeho klienta
+## Expected outcome
 
-V druhem terminalu:
-
-```bash
-dotnet run --project examples/sum-student-client
-```
-
-## Build dokumentace (DocFX)
-
-```bash
-cd docs
-docfx metadata docfx.json
-docfx build docfx.json
-```
-
-Vystup: `docs/_site`.
+- server dashboard shows an active student session
+- client prints live testcase progress
+- run ends with a final summary

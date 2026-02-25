@@ -1,28 +1,25 @@
 # testprog Documentation
 
-Dokumentace pro projekt `testprog` postavena nad **DocFX**.
+`testprog` is a lightweight framework for running student solutions against structured test suites over a client/server protocol.
 
-## Co tu najdete
+## Documentation map
 
-- [Rychly start](guides/getting-started.md)
-- [Architektura projektu](guides/architecture.md)
-- [Tutorial Cesky (s diakritikou)](tutorials/tutorial-cs.md)
-- [Tutorial English](tutorials/tutorial-en.md)
-- [API reference](api/index.md)
+- [Getting Started](guides/getting-started.md)
+- [Architecture](guides/architecture.md)
+- [Tutorials](tutorials/index.md)
+- [API Reference](api/index.md)
+- [Internal Specifications](internal/live-testing/index.md)
 
-## Pro koho je dokumentace
+## Audience
 
-- **Studenti**: jak napsat solver, pripojit se k serveru a cist vysledky.
-- **Vyucujici**: jak pripravit test suite, spustit server a vyhodnocovat beh.
+- **Students**: implement a solver and run it against a test server.
+- **Instructors**: create and operate test suites, evaluate submissions, and troubleshoot sessions.
 
-## Jak sestavit dokumentaci
+## Scope
 
-```bash
-# z korene repozitare
-cd docs
+This site includes:
 
-docfx metadata docfx.json
-docfx build docfx.json
-```
-
-Lokalni vystup bude v `docs/_site`.
+- practical onboarding guides
+- bilingual role-based tutorials
+- generated API reference for public .NET types
+- internal protocol and configuration specifications
