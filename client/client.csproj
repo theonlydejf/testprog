@@ -3,6 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net7.0</TargetFramework>
     <PackageId>testprog.client</PackageId>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
     <Authors>testprog contributors</Authors>
     <Description>Student-facing client APIs for connecting to and running testprog test sessions.</Description>
     <RootNamespace>testprog.client</RootNamespace>
@@ -12,6 +13,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\messenger\messenger.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="/" />
   </ItemGroup>
 
 </Project>

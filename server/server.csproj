@@ -11,11 +11,16 @@
   <PropertyGroup>
     <TargetFramework>net7.0</TargetFramework>
     <PackageId>testprog.server</PackageId>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
     <Authors>testprog contributors</Authors>
     <Description>Server-side runtime APIs for hosting and evaluating testprog test suites.</Description>
     <RootNamespace>testprog.server</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
 
 </Project>
