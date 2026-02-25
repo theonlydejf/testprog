@@ -25,7 +25,7 @@ public sealed class StudentClientOptions
     /// <summary>
     /// Direct TCP port used together with <see cref="ServerHost"/>.
     /// </summary>
-    public int ServerPort { get; init; } = 15001;
+    public int ServerPort { get; init; } = 5000;
 
     /// <summary>
     /// Multicast address used for UDP server discovery.
@@ -35,7 +35,7 @@ public sealed class StudentClientOptions
     /// <summary>
     /// UDP discovery port used to locate the server.
     /// </summary>
-    public int DiscoveryPort { get; init; } = 11000;
+    public int DiscoveryPort { get; init; } = 15001;
 
     /// <summary>
     /// Maximum time allowed for UDP discovery.
