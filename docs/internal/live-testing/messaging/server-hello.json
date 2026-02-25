@@ -1,0 +1,11 @@
+{
+    "v": 2,
+    "type": "server-hello",
+    "requestId": "d777f9f1964142448c8da5f9f571ed20",
+    "sentAtUtc": "2026-02-17T12:01:15Z",
+    "payload":
+    {
+        "sessionToken": "ae2f8c657da44fd1a2312a3bdc5d6ca6",
+        "heartbeatSeconds": 10
+    }
+}

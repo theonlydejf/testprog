@@ -1,0 +1,12 @@
+{
+    "v": 2,
+    "type": "stop",
+    "sessionToken": "ae2f8c657da44fd1a2312a3bdc5d6ca6",
+    "requestId": "f13f3311ac744929af7f2b2dbc4aa0e1",
+    "sentAtUtc": "2026-02-17T12:06:00Z",
+    "payload":
+    {
+        "reasonCode": "server-stop",
+        "reasonDetail": "Teacher terminated this testing session."
+    }
+}

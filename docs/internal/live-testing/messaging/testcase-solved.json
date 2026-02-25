@@ -1,0 +1,15 @@
+{
+    "v": 2,
+    "type": "testcase-solved",
+    "sessionToken": "ae2f8c657da44fd1a2312a3bdc5d6ca6",
+    "requestId": "6fcf9e8d34c54c8ab8d2c17b1b4c8c54",
+    "sentAtUtc": "2026-02-17T12:02:01Z",
+    "payload":
+    {
+        "testcaseId": "sum-001",
+        "output":
+        {
+            "result": 5
+        }
+    }
+}

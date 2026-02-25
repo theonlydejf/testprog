@@ -1,0 +1,107 @@
+{
+  "server": {
+    "serverId": "teacher-pc-01",
+    "advertiseHost": "192.168.1.10",
+    "discoveryMulticastAddress": "239.0.0.222",
+    "discoveryPort": 11000,
+    "tcpPort": 5000,
+    "maxConcurrentSessions": 32,
+    "clientResponseTimeoutSeconds": 10,
+    "studentIdWhitelist": [
+      "novakj",
+      "svobodaa",
+      "kralm"
+    ]
+  },
+  "suite": {
+    "groups": [
+      {
+        "id": "basic",
+        "name": "Basic tests",
+        "testcases": [
+          {
+            "id": "sum-001",
+            "comparisonMode": "strict-json",
+            "input": {
+              "mode": "inline",
+              "value": {
+                "a": 2,
+                "b": 3
+              }
+            },
+            "expectedOutput": {
+              "result": 5
+            }
+          },
+          {
+            "id": "sum-002",
+            "comparisonMode": "strict-json",
+            "input": {
+              "mode": "inline",
+              "value": {
+                "a": 10,
+                "b": -4
+              }
+            },
+            "goldenStandard": {
+              "sourceFile": "golden/SumGolden.cs",
+              "typeName": "GoldenStandard",
+              "methodName": "Solve"
+            }
+          }
+        ]
+      },
+      {
+        "id": "random-sum",
+        "name": "Random sum tests",
+        "random": {
+          "count": 5,
+          "testCaseIdPrefix": "sum-rand-",
+          "seed": 12345,
+          "comparisonMode": "strict-json",
+          "goldenStandard": {
+            "sourceFile": "golden/SumGolden.cs",
+            "typeName": "GoldenStandard",
+            "methodName": "Solve"
+          },
+          "inputGenerator": {
+            "mode": "default",
+            "intFields": [
+              {
+                "name": "a",
+                "min": -100,
+                "max": 100
+              },
+              {
+                "name": "b",
+                "min": -100,
+                "max": 100
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "random-sum-script",
+        "name": "Random sum tests (script generator)",
+        "random": {
+          "count": 5,
+          "testCaseIdPrefix": "sum-script-rand-",
+          "seed": 20260218,
+          "comparisonMode": "strict-json",
+          "goldenStandard": {
+            "sourceFile": "golden/SumGolden.cs",
+            "typeName": "GoldenStandard",
+            "methodName": "Solve"
+          },
+          "inputGenerator": {
+            "mode": "source-file",
+            "sourceFile": "random-input-generator.example.cs",
+            "typeName": "RandomInputGenerator",
+            "methodName": "Generate"
+          }
+        }
+      }
+    ]
+  }
+}

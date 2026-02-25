@@ -413,3 +413,9 @@ FodyWeavers.xsd
 .ionide
 
 # End of https://www.toptal.com/developers/gitignore/api/visualstudiocode,csharp
+
+# DocFX generated output
+docs/_site/
+docs/api/.manifest
+docs/api/*.yml
+!docs/api/index.md

@@ -1,0 +1,12 @@
+{
+    "v": 2,
+    "type": "server-available",
+    "requestId": "dce5c02474684f4ea1743f62d245f390",
+    "sentAtUtc": "2026-02-17T12:01:00Z",
+    "payload":
+    {
+        "serverId": "teacher-pc-01",
+        "serverHost": "192.168.1.10",
+        "serverPort": 5000
+    }
+}

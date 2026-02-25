@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <IsPackable>true</IsPackable>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <PackageType>Dependency</PackageType>
+    <PackageId>testprog</PackageId>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <Authors>testprog contributors</Authors>
+    <Description>Meta package that references testprog.client, testprog.server and testprog.messenger.</Description>
+    <NoWarn>$(NoWarn);NU5128</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\client\client.csproj" />
+    <ProjectReference Include="..\server\server.csproj" />
+    <ProjectReference Include="..\messenger\messenger.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+
+</Project>

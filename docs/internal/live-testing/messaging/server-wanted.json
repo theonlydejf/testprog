@@ -1,0 +1,11 @@
+{
+    "v": 2,
+    "type": "server-wanted",
+    "requestId": "a10fd4557cb74f26bf5c8ef0ed4f483d",
+    "sentAtUtc": "2026-02-17T12:00:50Z",
+    "payload":
+    {
+        "studentId": "novakj",
+        "displayName": "Jan Novak"
+    }
+}
