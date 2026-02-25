@@ -8,7 +8,7 @@ public sealed class StudentClientOptions
     public string DisplayName { get; init; } = string.Empty;
 
     public string? ServerHost { get; init; }
-    public int ServerPort { get; init; } = 5000;
+    public int ServerPort { get; init; } = 15001;
 
     public string DiscoveryMulticastAddress { get; init; } = "239.0.0.222";
     public int DiscoveryPort { get; init; } = 11000;
