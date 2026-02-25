@@ -2,6 +2,9 @@
 
   <PropertyGroup>
     <TargetFramework>net7.0</TargetFramework>
+    <PackageId>testprog.client</PackageId>
+    <Authors>testprog contributors</Authors>
+    <Description>Student-facing client APIs for connecting to and running testprog test sessions.</Description>
     <RootNamespace>testprog.client</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>

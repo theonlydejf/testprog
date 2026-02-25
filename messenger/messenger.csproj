@@ -2,6 +2,9 @@
 
   <PropertyGroup>
     <TargetFramework>net7.0</TargetFramework>
+    <PackageId>testprog.messenger</PackageId>
+    <Authors>testprog contributors</Authors>
+    <Description>Core messaging, protocol and transport APIs for testprog.</Description>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
