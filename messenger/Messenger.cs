@@ -5,8 +5,17 @@ using Newtonsoft.Json.Linq;
 
 namespace testprog.messenger;
 
+/// <summary>
+/// Factory entry point for establishing a connection to a test server.
+/// </summary>
 public static class TestProgClient
 {
+    /// <summary>
+    /// Connects to a server using configured discovery mode and performs protocol handshake.
+    /// </summary>
+    /// <param name="options">Connection and identity options.</param>
+    /// <param name="cancellationToken">Cancellation token for connection and handshake.</param>
+    /// <returns>Connected test client instance.</returns>
     public static Task<ITestProgClient> ConnectAsync(
         TestProgClientOptions options,
         CancellationToken cancellationToken = default)
@@ -82,38 +91,95 @@ public static class TestProgClient
     }
 }
 
+/// <summary>
+/// Represents an active client session against the test server.
+/// </summary>
 public interface ITestProgClient : IAsyncDisposable
 {
+    /// <summary>
+    /// Runs a test session using synchronous solver callback.
+    /// </summary>
+    /// <param name="solve">Student solver callback.</param>
+    /// <param name="cancellationToken">Cancellation token for the run.</param>
+    /// <returns>Final test run summary.</returns>
     Task<TestRunSummary> RunAsync(
         Func<TestInput, object?> solve,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Runs a test session using synchronous solver callback and progress reporting.
+    /// </summary>
+    /// <param name="solve">Student solver callback.</param>
+    /// <param name="onProgress">Progress callback invoked for protocol milestones.</param>
+    /// <param name="cancellationToken">Cancellation token for the run.</param>
+    /// <returns>Final test run summary.</returns>
     Task<TestRunSummary> RunAsync(
         Func<TestInput, object?> solve,
         Action<TestRunProgress>? onProgress,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Runs a test session using asynchronous solver callback.
+    /// </summary>
+    /// <param name="solveAsync">Async student solver callback.</param>
+    /// <param name="cancellationToken">Cancellation token for the run.</param>
+    /// <returns>Final test run summary.</returns>
     Task<TestRunSummary> RunAsync(
         Func<TestInput, Task<object?>> solveAsync,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Runs a test session using asynchronous solver callback and progress reporting.
+    /// </summary>
+    /// <param name="solveAsync">Async student solver callback.</param>
+    /// <param name="onProgress">Progress callback invoked for protocol milestones.</param>
+    /// <param name="cancellationToken">Cancellation token for the run.</param>
+    /// <returns>Final test run summary.</returns>
     Task<TestRunSummary> RunAsync(
         Func<TestInput, Task<object?>> solveAsync,
         Action<TestRunProgress>? onProgress,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Sends a stop request to server and terminates the session.
+    /// </summary>
+    /// <param name="reasonCode">Machine-readable reason code.</param>
+    /// <param name="reasonDetail">Optional human-readable detail.</param>
+    /// <param name="cancellationToken">Cancellation token for the stop operation.</param>
     Task StopAsync(
         string reasonCode = StopReasonCodes.ClientStop,
         string? reasonDetail = null,
         CancellationToken cancellationToken = default);
 }
 
+/// <summary>
+/// Low-level connection options consumed by <see cref="TestProgClient"/>.
+/// </summary>
 public sealed class TestProgClientOptions
 {
+    /// <summary>
+    /// Unique student identifier.
+    /// </summary>
     public string StudentId { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Human-readable student display name.
+    /// </summary>
     public string DisplayName { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Discovery and direct-connect options.
+    /// </summary>
     public DiscoveryOptions Discovery { get; init; } = DiscoveryOptions.Default;
+
+    /// <summary>
+    /// Maximum time allowed for connection establishment and handshake.
+    /// </summary>
     public TimeSpan ConnectTimeout { get; init; } = TimeSpan.FromSeconds(8);
+
+    /// <summary>
+    /// Maximum time between incoming messages before timeout is considered.
+    /// </summary>
     public TimeSpan HeartbeatTimeout { get; init; } = TimeSpan.FromSeconds(10);
 
     internal void Validate()
@@ -147,15 +213,44 @@ public sealed class TestProgClientOptions
     }
 }
 
+/// <summary>
+/// Options controlling how server endpoint is discovered.
+/// </summary>
 public sealed class DiscoveryOptions
 {
+    /// <summary>
+    /// Default discovery options using multicast auto discovery.
+    /// </summary>
     public static DiscoveryOptions Default { get; } = new();
 
+    /// <summary>
+    /// Discovery mode.
+    /// </summary>
     public DiscoveryMode Mode { get; init; } = DiscoveryMode.Auto;
+
+    /// <summary>
+    /// Multicast address for UDP discovery.
+    /// </summary>
     public string MulticastAddress { get; init; } = "239.0.0.222";
+
+    /// <summary>
+    /// Multicast port for UDP discovery.
+    /// </summary>
     public int MulticastPort { get; init; } = 11000;
+
+    /// <summary>
+    /// Server host used when <see cref="Mode"/> is <see cref="DiscoveryMode.DirectTcp"/>.
+    /// </summary>
     public string? DirectServerHost { get; init; }
+
+    /// <summary>
+    /// Server TCP port used when <see cref="Mode"/> is <see cref="DiscoveryMode.DirectTcp"/>.
+    /// </summary>
     public int DirectServerPort { get; init; } = 5000;
+
+    /// <summary>
+    /// Maximum time allowed for UDP discovery.
+    /// </summary>
     public TimeSpan DiscoveryTimeout { get; init; } = TimeSpan.FromSeconds(3);
 
     internal void Validate()
@@ -182,67 +277,135 @@ public sealed class DiscoveryOptions
     }
 }
 
+/// <summary>
+/// Supported strategies for locating a server endpoint.
+/// </summary>
 public enum DiscoveryMode
 {
+    /// <summary>
+    /// Resolve server endpoint via UDP multicast discovery.
+    /// </summary>
     Auto = 0,
+
+    /// <summary>
+    /// Connect directly to configured host and port.
+    /// </summary>
     DirectTcp = 1
 }
 
+/// <summary>
+/// Normalized testcase result status.
+/// </summary>
 public enum TestCaseResultStatus
 {
+    /// <summary>
+    /// Testcase passed.
+    /// </summary>
     Passed = 0,
+
+    /// <summary>
+    /// Testcase failed.
+    /// </summary>
     Failed = 1
 }
 
+/// <summary>
+/// Progress event categories emitted during a run.
+/// </summary>
 public enum TestRunProgressKind
 {
+    /// <summary>Full run started.</summary>
     TestBegin = 0,
+    /// <summary>New test group started.</summary>
     TestGroupStart = 1,
+    /// <summary>New testcase has been received.</summary>
     TestCaseStart = 2,
+    /// <summary>Server returned testcase verdict.</summary>
     TestCaseResult = 3,
+    /// <summary>Current group finished.</summary>
     TestGroupEnd = 4,
+    /// <summary>Full run finished normally.</summary>
     TestEnd = 5,
+    /// <summary>Run was stopped before completion.</summary>
     Stop = 6
 }
 
+/// <summary>
+/// Snapshot describing one run progress event.
+/// </summary>
 public sealed class TestRunProgress
 {
+    /// <summary>Progress event kind.</summary>
     public TestRunProgressKind Kind { get; init; }
+    /// <summary>Current group identifier.</summary>
     public string? GroupId { get; init; }
+    /// <summary>Current group display name.</summary>
     public string? GroupDisplayName { get; init; }
+    /// <summary>Total testcase count in current group.</summary>
     public int GroupTestCaseCount { get; init; }
+    /// <summary>Passed count in current group so far.</summary>
     public int GroupPassedCount { get; init; }
+    /// <summary>Failed count in current group so far.</summary>
     public int GroupFailedCount { get; init; }
+    /// <summary>Current testcase identifier.</summary>
     public string? TestCaseId { get; init; }
+    /// <summary>Current testcase textual status.</summary>
     public string? TestCaseStatus { get; init; }
+    /// <summary>Machine-readable reason code for failures/stops.</summary>
     public string? ReasonCode { get; init; }
+    /// <summary>Optional human-readable reason detail.</summary>
     public string? ReasonDetail { get; init; }
+    /// <summary>Total passed count across all groups.</summary>
     public int TotalPassedCount { get; init; }
+    /// <summary>Total failed count across all groups.</summary>
     public int TotalFailedCount { get; init; }
 }
 
+/// <summary>
+/// Final run summary returned when run completes or stops.
+/// </summary>
 public sealed class TestRunSummary
 {
+    /// <summary>Session token assigned by server.</summary>
     public string SessionToken { get; internal set; } = string.Empty;
+    /// <summary>UTC timestamp when run started.</summary>
     public DateTimeOffset StartedAtUtc { get; internal set; }
+    /// <summary>UTC timestamp when run finished.</summary>
     public DateTimeOffset FinishedAtUtc { get; internal set; }
+    /// <summary>Total number of groups processed.</summary>
     public int TestGroupCount { get; internal set; }
+    /// <summary>Total number of testcases processed.</summary>
     public int TestCaseCount { get; internal set; }
+    /// <summary>Total passed testcase count.</summary>
     public int PassedCount { get; internal set; }
+    /// <summary>Total failed testcase count.</summary>
     public int FailedCount { get; internal set; }
+    /// <summary>Indicates whether run reached normal <c>test-end</c>.</summary>
     public bool Completed { get; internal set; }
+    /// <summary>Stop reason code when <see cref="Completed"/> is false.</summary>
     public string? StopReasonCode { get; internal set; }
+    /// <summary>Stop reason detail when <see cref="Completed"/> is false.</summary>
     public string? StopReasonDetail { get; internal set; }
 }
 
+/// <summary>
+/// Well-known reason codes used in stop and error payloads.
+/// </summary>
 public static class StopReasonCodes
 {
+    /// <summary>Client requested stop.</summary>
     public const string ClientStop = "client-stop";
+    /// <summary>Server requested stop.</summary>
     public const string ServerStop = "server-stop";
+    /// <summary>Client is not authorized.</summary>
     public const string Unauthorized = "unauthorized";
+    /// <summary>Operation timed out.</summary>
     public const string Timeout = "timeout";
+    /// <summary>Submitted answer is invalid.</summary>
     public const string InvalidAnswer = "invalid-answer";
+    /// <summary>Too many invalid answers were submitted.</summary>
     public const string TooManyWrongAnswers = "too-many-wrong-answers";
+    /// <summary>Unexpected internal server error.</summary>
     public const string InternalServerError = "internal-server-error";
 }
 

@@ -2,15 +2,49 @@ using System.Net;
 
 namespace testprog.server;
 
+/// <summary>
+/// Runtime options used by <see cref="TestServerHost"/>.
+/// </summary>
 public sealed class TestServerOptions
 {
+    /// <summary>
+    /// Logical server identifier reported to clients.
+    /// </summary>
     public string ServerId { get; init; } = Environment.MachineName;
+
+    /// <summary>
+    /// Explicit host value advertised in discovery responses.
+    /// </summary>
     public string AdvertiseHost { get; init; } = string.Empty;
+
+    /// <summary>
+    /// IPv4 multicast address used for discovery.
+    /// </summary>
     public string DiscoveryMulticastAddress { get; init; } = "239.0.0.222";
+
+    /// <summary>
+    /// UDP port used for discovery requests and responses.
+    /// </summary>
     public int DiscoveryPort { get; init; } = 11000;
+
+    /// <summary>
+    /// TCP port used for test sessions.
+    /// </summary>
     public int TcpPort { get; init; } = 5000;
+
+    /// <summary>
+    /// Maximum number of concurrent client sessions.
+    /// </summary>
     public int MaxConcurrentSessions { get; init; } = 32;
+
+    /// <summary>
+    /// Maximum allowed time for client testcase response.
+    /// </summary>
     public TimeSpan ClientResponseTimeout { get; init; } = TimeSpan.FromSeconds(10);
+
+    /// <summary>
+    /// Optional whitelist of allowed student IDs. Empty list means allow all.
+    /// </summary>
     public IReadOnlyList<string> StudentIdWhitelist { get; init; } = Array.Empty<string>();
 
     internal void Validate()

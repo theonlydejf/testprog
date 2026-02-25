@@ -3,14 +3,32 @@ using Newtonsoft.Json.Linq;
 
 namespace testprog.server;
 
+/// <summary>
+/// Result of parsing a server configuration document.
+/// </summary>
 public sealed class LoadedServerConfiguration
 {
+    /// <summary>
+    /// Parsed and validated server options.
+    /// </summary>
     public required TestServerOptions ServerOptions { get; init; }
+
+    /// <summary>
+    /// Parsed and validated test suite definition.
+    /// </summary>
     public required TestSuiteDefinition Suite { get; init; }
 }
 
+/// <summary>
+/// Loads and validates server configuration from JSON sources.
+/// </summary>
 public static class TestServerConfigurationLoader
 {
+    /// <summary>
+    /// Loads configuration from a JSON file path.
+    /// </summary>
+    /// <param name="path">Path to configuration JSON file.</param>
+    /// <returns>Parsed and validated configuration object.</returns>
     public static LoadedServerConfiguration LoadFromFile(string path)
     {
         if (string.IsNullOrWhiteSpace(path))
@@ -23,6 +41,11 @@ public static class TestServerConfigurationLoader
         return LoadFromJson(json, baseDirectory);
     }
 
+    /// <summary>
+    /// Loads configuration directly from JSON text.
+    /// </summary>
+    /// <param name="json">Configuration JSON.</param>
+    /// <returns>Parsed and validated configuration object.</returns>
     public static LoadedServerConfiguration LoadFromJson(string json)
     {
         return LoadFromJson(json, baseDirectory: null);

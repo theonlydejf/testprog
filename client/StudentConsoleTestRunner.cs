@@ -2,8 +2,18 @@ using testprog.messenger;
 
 namespace testprog.client;
 
+/// <summary>
+/// Convenience entry point for running student solutions from a console application.
+/// </summary>
 public static class StudentConsoleTestRunner
 {
+    /// <summary>
+    /// Runs a test session and returns a detailed summary.
+    /// </summary>
+    /// <param name="options">Client connection and identity options.</param>
+    /// <param name="solve">Student solution delegate invoked for each testcase.</param>
+    /// <param name="cancellationToken">Cancellation token used to stop the session.</param>
+    /// <returns>Final run summary returned by the server/client runtime.</returns>
     public static TestRunSummary Run(
         StudentClientOptions options,
         Func<TestInput, object?> solve,
@@ -15,6 +25,15 @@ public static class StudentConsoleTestRunner
         return RunCoreAsync(options, solve, cancellationToken).GetAwaiter().GetResult();
     }
 
+    /// <summary>
+    /// Runs a test session and returns process-friendly exit code semantics.
+    /// </summary>
+    /// <param name="options">Client connection and identity options.</param>
+    /// <param name="solve">Student solution delegate invoked for each testcase.</param>
+    /// <param name="cancellationToken">Cancellation token used to stop the session.</param>
+    /// <returns>
+    /// <c>0</c> when the run completed and all testcases passed; otherwise <c>1</c>.
+    /// </returns>
     public static int RunWithExitCode(
         StudentClientOptions options,
         Func<TestInput, object?> solve,

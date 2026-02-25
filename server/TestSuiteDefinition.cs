@@ -2,8 +2,14 @@
 
 namespace testprog.server;
 
+/// <summary>
+/// Root definition of a full server test suite.
+/// </summary>
 public sealed class TestSuiteDefinition
 {
+    /// <summary>
+    /// Ordered list of test groups.
+    /// </summary>
     public IReadOnlyList<TestGroupDefinition> Groups { get; init; } = Array.Empty<TestGroupDefinition>();
 
     internal void Validate()
@@ -30,11 +36,29 @@ public sealed class TestSuiteDefinition
     }
 }
 
+/// <summary>
+/// One logical group of testcases.
+/// </summary>
 public sealed class TestGroupDefinition
 {
+    /// <summary>
+    /// Unique group identifier.
+    /// </summary>
     public string GroupId { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Human-readable group name.
+    /// </summary>
     public string DisplayName { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Static testcase list. Must be used exclusively with <see cref="Randomized"/>.
+    /// </summary>
     public IReadOnlyList<TestCaseDefinition> TestCases { get; init; } = Array.Empty<TestCaseDefinition>();
+
+    /// <summary>
+    /// Randomized testcase source. Must be used exclusively with <see cref="TestCases"/>.
+    /// </summary>
     public RandomTestGroupDefinition? Randomized { get; init; }
 
     internal void Validate()
@@ -78,12 +102,34 @@ public sealed class TestGroupDefinition
     }
 }
 
+/// <summary>
+/// Definition of one testcase in static group mode.
+/// </summary>
 public sealed class TestCaseDefinition
 {
+    /// <summary>
+    /// Unique testcase identifier.
+    /// </summary>
     public string TestCaseId { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Input JSON object sent to the student solution.
+    /// </summary>
     public JObject Input { get; init; } = new();
+
+    /// <summary>
+    /// Expected output JSON token for direct comparison mode.
+    /// </summary>
     public JToken? ExpectedOutput { get; init; }
+
+    /// <summary>
+    /// Optional golden standard evaluator reference used instead of <see cref="ExpectedOutput"/>.
+    /// </summary>
     public GoldenStandardDefinition? GoldenStandard { get; init; }
+
+    /// <summary>
+    /// Output comparison behavior.
+    /// </summary>
     public TestCaseComparisonMode ComparisonMode { get; init; } = TestCaseComparisonMode.StrictJson;
 
     internal void Validate()
@@ -115,10 +161,24 @@ public sealed class TestCaseDefinition
     }
 }
 
+/// <summary>
+/// Source-file based golden standard evaluator configuration.
+/// </summary>
 public sealed class GoldenStandardDefinition
 {
+    /// <summary>
+    /// Source file path containing golden standard implementation.
+    /// </summary>
     public string SourceFilePath { get; init; } = string.Empty;
+
+    /// <summary>
+    /// CLR type name containing evaluation method.
+    /// </summary>
     public string TypeName { get; init; } = "GoldenStandard";
+
+    /// <summary>
+    /// Static method name used for evaluation.
+    /// </summary>
     public string MethodName { get; init; } = "Solve";
 
     internal void Validate(string testcaseId)
@@ -146,19 +206,55 @@ public sealed class GoldenStandardDefinition
     }
 }
 
+/// <summary>
+/// Supported testcase output comparison modes.
+/// </summary>
 public enum TestCaseComparisonMode
 {
+    /// <summary>
+    /// Deep JSON token comparison.
+    /// </summary>
     StrictJson = 0,
+
+    /// <summary>
+    /// Text comparison after normalization and string trimming.
+    /// </summary>
     NormalizedText = 1
 }
 
+/// <summary>
+/// Randomized testcase group configuration.
+/// </summary>
 public sealed class RandomTestGroupDefinition
 {
+    /// <summary>
+    /// Number of generated testcases in the group.
+    /// </summary>
     public int Count { get; init; }
+
+    /// <summary>
+    /// Prefix used to generate testcase identifiers.
+    /// </summary>
     public string TestCaseIdPrefix { get; init; } = "random-";
+
+    /// <summary>
+    /// Optional deterministic random seed.
+    /// </summary>
     public int? Seed { get; init; }
+
+    /// <summary>
+    /// Comparison mode used for generated outputs.
+    /// </summary>
     public TestCaseComparisonMode ComparisonMode { get; init; } = TestCaseComparisonMode.StrictJson;
+
+    /// <summary>
+    /// Golden standard evaluator used to derive expected outputs.
+    /// </summary>
     public GoldenStandardDefinition? GoldenStandard { get; init; }
+
+    /// <summary>
+    /// Random input generator configuration.
+    /// </summary>
     public RandomInputGeneratorDefinition? InputGenerator { get; init; }
 
     internal void Validate(string groupId)
@@ -196,10 +292,24 @@ public sealed class RandomTestGroupDefinition
     }
 }
 
+/// <summary>
+/// Root random input generator configuration.
+/// </summary>
 public sealed class RandomInputGeneratorDefinition
 {
+    /// <summary>
+    /// Generator mode.
+    /// </summary>
     public RandomInputGeneratorMode Mode { get; init; } = RandomInputGeneratorMode.Default;
+
+    /// <summary>
+    /// Configuration for default built-in generator mode.
+    /// </summary>
     public DefaultRandomInputGeneratorDefinition? Default { get; init; }
+
+    /// <summary>
+    /// Configuration for source-file generator mode.
+    /// </summary>
     public SourceFileRandomInputGeneratorDefinition? SourceFile { get; init; }
 
     internal void Validate(string groupId)
@@ -248,14 +358,30 @@ public sealed class RandomInputGeneratorDefinition
     }
 }
 
+/// <summary>
+/// Supported random input generator modes.
+/// </summary>
 public enum RandomInputGeneratorMode
 {
+    /// <summary>
+    /// Built-in integer field generator.
+    /// </summary>
     Default = 0,
+
+    /// <summary>
+    /// Source-file custom generator compiled at runtime.
+    /// </summary>
     SourceFile = 1
 }
 
+/// <summary>
+/// Built-in random input generator configuration.
+/// </summary>
 public sealed class DefaultRandomInputGeneratorDefinition
 {
+    /// <summary>
+    /// Integer field definitions generated for each testcase input.
+    /// </summary>
     public IReadOnlyList<RandomIntFieldDefinition> IntFields { get; init; } = Array.Empty<RandomIntFieldDefinition>();
 
     internal void Validate(string groupId)
@@ -281,10 +407,24 @@ public sealed class DefaultRandomInputGeneratorDefinition
     }
 }
 
+/// <summary>
+/// One generated integer field configuration.
+/// </summary>
 public sealed class RandomIntFieldDefinition
 {
+    /// <summary>
+    /// Target property name in generated input object.
+    /// </summary>
     public string Name { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Inclusive minimum value.
+    /// </summary>
     public int MinValue { get; init; } = 0;
+
+    /// <summary>
+    /// Inclusive maximum value.
+    /// </summary>
     public int MaxValue { get; init; } = 100;
 
     internal void Validate(string groupId)
@@ -305,10 +445,24 @@ public sealed class RandomIntFieldDefinition
     }
 }
 
+/// <summary>
+/// Source-file random input generator configuration.
+/// </summary>
 public sealed class SourceFileRandomInputGeneratorDefinition
 {
+    /// <summary>
+    /// Source file path containing generator implementation.
+    /// </summary>
     public string SourceFilePath { get; init; } = string.Empty;
+
+    /// <summary>
+    /// CLR type name containing generator method.
+    /// </summary>
     public string TypeName { get; init; } = "RandomInputGenerator";
+
+    /// <summary>
+    /// Static method name used to generate input values.
+    /// </summary>
     public string MethodName { get; init; } = "Generate";
 
     internal void Validate(string groupId)

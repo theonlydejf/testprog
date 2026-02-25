@@ -7,6 +7,9 @@ using testprog.messenger;
 
 namespace testprog.server;
 
+/// <summary>
+/// Host runtime that serves test sessions over UDP discovery and TCP protocol.
+/// </summary>
 public sealed class TestServerHost : IAsyncDisposable
 {
     private readonly TestServerOptions _options;
@@ -21,6 +24,14 @@ public sealed class TestServerHost : IAsyncDisposable
     private TcpListener? _tcpListener;
     private bool _disposed;
 
+    /// <summary>
+    /// Creates a new server host instance.
+    /// </summary>
+    /// <param name="options">Server runtime options.</param>
+    /// <param name="suite">Test suite definition served to clients.</param>
+    /// <param name="onRuntimeEvent">
+    /// Optional callback invoked for session lifecycle and testcase evaluation events.
+    /// </param>
     public TestServerHost(
         TestServerOptions options,
         TestSuiteDefinition suite,
@@ -75,6 +86,10 @@ public sealed class TestServerHost : IAsyncDisposable
         }
     }
 
+    /// <summary>
+    /// Starts discovery and TCP loops and runs until cancellation is requested.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token used to stop the host.</param>
     public async Task RunAsync(CancellationToken cancellationToken = default)
     {
         ThrowIfDisposed();
@@ -102,6 +117,9 @@ public sealed class TestServerHost : IAsyncDisposable
         }
     }
 
+    /// <summary>
+    /// Disposes host resources and waits for active sessions to complete.
+    /// </summary>
     public async ValueTask DisposeAsync()
     {
         if (_disposed)
