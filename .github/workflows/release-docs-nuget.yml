@@ -123,6 +123,9 @@ jobs:
             -p:PackageVersion=${{ steps.version.outputs.version }} \
             -p:Version=${{ steps.version.outputs.version }} \
             -p:ContinuousIntegrationBuild=true
+      
+      - name: List packed artifacts
+        run: ls -lah artifacts/nuget || true
 
       - name: Push NuGet packages
         env:
