@@ -1,0 +1,59 @@
+{
+  "metadata": [
+    {
+      "src": [
+        {
+          "src": "..",
+          "files": [
+            "messenger/messenger.csproj",
+            "client/client.csproj",
+            "server/server.csproj"
+          ]
+        }
+      ],
+      "dest": "api",
+      "disableGitFeatures": true
+    }
+  ],
+  "build": {
+    "content": [
+      {
+        "files": [
+          "index.md",
+          "toc.yml",
+          "guides/**/*.md",
+          "guides/toc.yml",
+          "tutorials/**/*.md",
+          "tutorials/toc.yml",
+          "api/index.md",
+          "api/*.yml",
+          "api/**/*.yml",
+          "internal/live-testing/**/*.md",
+          "internal/live-testing/**/*.yml"
+        ],
+        "exclude": [
+          "_site/**",
+          "obj/**"
+        ]
+      }
+    ],
+    "resource": [
+      {
+        "files": [
+          "internal/live-testing/**/*.json",
+          "internal/live-testing/**/*.cs"
+        ]
+      }
+    ],
+    "template": [
+      "default",
+      "modern"
+    ],
+    "dest": "_site",
+    "globalMetadata": {
+      "_appTitle": "testprog Documentation",
+      "_enableSearch": true,
+      "_disableContribution": true
+    }
+  }
+}
