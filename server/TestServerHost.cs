@@ -4,6 +4,7 @@ using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using testprog.messenger;
+using System.Globalization;
 
 namespace testprog.server;
 
@@ -311,26 +312,26 @@ public sealed class TestServerHost : IAsyncDisposable
             }
 
             ClientHelloPayload hello = ProtocolSerializer.DeserializePayload<ClientHelloPayload>(helloEnvelope);
-            if (string.IsNullOrWhiteSpace(hello.StudentId) || string.IsNullOrWhiteSpace(hello.DisplayName))
+            studentId = SanitizeStudentId(hello.StudentId);
+            displayName = SanitizeDisplayName(hello.DisplayName);
+
+            if (string.IsNullOrWhiteSpace(studentId) || string.IsNullOrWhiteSpace(displayName))
             {
                 EmitRuntimeEvent(new TestServerRuntimeEvent
                 {
                     Kind = TestServerRuntimeEventKind.SessionRejected,
                     RemoteEndpoint = remoteEndpoint,
                     ReasonCode = StopReasonCodes.InvalidAnswer,
-                    ReasonDetail = "Client hello is missing student identity."
+                    ReasonDetail = "Client hello is missing or has an invalid student identity."
                 });
 
                 await TrySendErrorAsync(
                     channel,
                     null,
                     StopReasonCodes.InvalidAnswer,
-                    "Client hello is missing student identity.").ConfigureAwait(false);
+                    "Client hello is missing or has an invalid student identity.").ConfigureAwait(false);
                 return;
             }
-
-            studentId = hello.StudentId;
-            displayName = hello.DisplayName;
 
             if (!_options.IsStudentAllowed(studentId))
             {
@@ -873,6 +874,108 @@ public sealed class TestServerHost : IAsyncDisposable
         }
 
         return token.DeepClone();
+    }
+
+    private static string SanitizeStudentId(string raw)
+    {
+        string normalized = (raw ?? string.Empty).Normalize(NormalizationForm.FormKC).Trim();
+        if (normalized.Length == 0)
+        {
+            return string.Empty;
+        }
+
+        StringBuilder sb = new(normalized.Length);
+        foreach (char ch in normalized)
+        {
+            if (char.IsControl(ch))
+            {
+                continue;
+            }
+
+            if ((ch >= 'A' && ch <= 'Z') ||
+                (ch >= 'a' && ch <= 'z') ||
+                (ch >= '0' && ch <= '9') ||
+                ch is '.' or '_' or '-')
+            {
+                sb.Append(ch);
+            }
+        }
+
+        string value = sb.ToString();
+        if (value.Length > 16)
+        {
+            value = value[..16];
+        }
+
+        return value;
+    }
+
+    private static string SanitizeDisplayName(string raw)
+    {
+        string normalized = (raw ?? string.Empty).Normalize(NormalizationForm.FormKC).Trim();
+        if (normalized.Length == 0)
+        {
+            return string.Empty;
+        }
+
+        // Collapse all whitespace runs to a single plain space.
+        StringBuilder sb = new(normalized.Length);
+        bool prevWasSpace = false;
+
+        foreach (Rune rune in normalized.EnumerateRunes())
+        {
+            if (Rune.IsWhiteSpace(rune))
+            {
+                if (!prevWasSpace)
+                {
+                    sb.Append(' ');
+                    prevWasSpace = true;
+                }
+
+                continue;
+            }
+
+            if (IsAllowedDisplayNameRune(rune))
+            {
+                sb.Append(rune.ToString());
+                prevWasSpace = false;
+            }
+        }
+
+        string value = sb.ToString().Trim();
+        if (value.Length > 32)
+        {
+            value = value[..832].TrimEnd();
+        }
+
+        return value;
+    }
+
+    private static bool IsAllowedDisplayNameRune(Rune rune)
+    {
+        UnicodeCategory category = Rune.GetUnicodeCategory(rune);
+        return category switch
+        {
+            UnicodeCategory.UppercaseLetter => true,
+            UnicodeCategory.LowercaseLetter => true,
+            UnicodeCategory.TitlecaseLetter => true,
+            UnicodeCategory.ModifierLetter => true,
+            UnicodeCategory.OtherLetter => true,
+            UnicodeCategory.NonSpacingMark => true,
+            UnicodeCategory.SpacingCombiningMark => true,
+            UnicodeCategory.EnclosingMark => true,
+            UnicodeCategory.DecimalDigitNumber => true,
+            UnicodeCategory.LetterNumber => true,
+            UnicodeCategory.OtherNumber => true,
+            UnicodeCategory.ConnectorPunctuation => true,
+            UnicodeCategory.DashPunctuation => true,
+            UnicodeCategory.OpenPunctuation => true,
+            UnicodeCategory.ClosePunctuation => true,
+            UnicodeCategory.InitialQuotePunctuation => true,
+            UnicodeCategory.FinalQuotePunctuation => true,
+            UnicodeCategory.OtherPunctuation => true,
+            _ => false
+        };
     }
 
     private async Task TrySendStopAsync(
