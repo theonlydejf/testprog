@@ -162,7 +162,7 @@ internal sealed class ConsoleProgressRenderer
 
                 string groupName = progress.GroupDisplayName ?? progress.GroupId ?? "<unknown>";
                 string summary =
-                    $"Group done: {groupName} - {passedPercent:0.#}% passed ({progress.GroupPassedCount}/{totalInGroup}).";
+                    $"\n  Group done: {groupName} - {passedPercent:0.#}% passed ({progress.GroupPassedCount}/{totalInGroup}).\n";
 
                 if (progress.GroupFailedCount == 0)
                 {
