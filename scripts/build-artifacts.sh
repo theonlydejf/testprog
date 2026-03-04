@@ -13,8 +13,8 @@ Options:
   -o, --output DIR           Output root directory (default: artifacts/output)
   -c, --configuration CFG    Build configuration (default: Release)
   --suffix VALUE             Output suffix (default: current date YYYY-MM-DD)
-  --postfix VALUE            Alias for --suffix
-  --self-contained           Publish server-cli with bundled runtime (default)
+  --postfix VALUE            Alias for --suffix (default)
+  --self-contained           Publish server-cli with bundled runtime
   --framework-dependent      Publish server-cli without bundled runtime
 
 Behavior:
@@ -31,7 +31,7 @@ Default RIDs (when no RID is passed):
 Examples:
   scripts/build-artifacts.sh
   scripts/build-artifacts.sh linux-x64
-  scripts/build-artifacts.sh --framework-dependent win-x64 osx-arm64
+  scripts/build-artifacts.sh --self-contained win-x64 osx-arm64
   scripts/build-artifacts.sh --output out --configuration Release linux-x64
   scripts/build-artifacts.sh --suffix v1.0.0
 EOF
@@ -42,7 +42,7 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 CONFIGURATION="Release"
 OUTPUT_DIR="$REPO_ROOT/artifacts/output"
-MODE="self-contained"
+MODE="framework-dependent"
 SUFFIX=""
 DEFAULT_RIDS=(linux-x64 win-x64 osx-x64 osx-arm64)
 
