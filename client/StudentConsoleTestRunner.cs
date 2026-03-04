@@ -54,6 +54,7 @@ public static class StudentConsoleTestRunner
         Func<TestInput, object?> solve,
         CancellationToken cancellationToken)
     {
+        Console.Clear();
         TestProgClientOptions coreOptions = options.ToCoreOptions();
         ConsoleProgressRenderer renderer = new(options);
 
@@ -77,12 +78,19 @@ public static class StudentConsoleTestRunner
 
 internal sealed class ConsoleProgressRenderer
 {
+    private const int ProgressBarWidth = 24;
     private readonly StudentClientOptions _options;
     private int _groupIndex;
+    private readonly bool _useCursorAnchor;
+    private int _progressBarLeft;
+    private int _progressBarTop = -1;
+    private bool _groupProgressLineActive;
+    private int _lastProgressLineLength;
 
     public ConsoleProgressRenderer(StudentClientOptions options)
     {
         _options = options;
+        _useCursorAnchor = !Console.IsOutputRedirected;
     }
 
     public void PrintConnecting()
@@ -110,26 +118,65 @@ internal sealed class ConsoleProgressRenderer
         switch (progress.Kind)
         {
             case TestRunProgressKind.TestBegin:
+                CloseGroupProgressLine();
                 WriteHeader("Test run started");
                 break;
 
             case TestRunProgressKind.TestGroupStart:
+                CloseGroupProgressLine();
                 _groupIndex += 1;
                 WriteHeader(
                     $"Group {_groupIndex}: {progress.GroupDisplayName ?? progress.GroupId} " +
                     $"({progress.GroupTestCaseCount} testcases)");
+                _progressBarLeft = 0;
+                _progressBarTop = Console.CursorTop;
+                if (_useCursorAnchor)
+                {
+                    // Reserve a dedicated writable row below the bar.
+                    // Console.WriteLine();
+                    _progressBarTop = Math.Max(0, Console.CursorTop - 1);
+                }
+                RenderGroupProgress(0, progress.GroupTestCaseCount);
+                EnsureCursorBelowProgressBar();
                 break;
 
             case TestRunProgressKind.TestCaseResult:
-                PrintTestCaseResult(progress);
+                RenderGroupProgress(
+                    progress.GroupPassedCount + progress.GroupFailedCount,
+                    progress.GroupTestCaseCount);
+                break;
+
+            case TestRunProgressKind.TestCaseStart:
+                // Intentionally keep progress line anchored above and let solver write below it.
                 break;
 
             case TestRunProgressKind.TestGroupEnd:
-                WriteInfo(
-                    $"Group done: passed {progress.GroupPassedCount}, failed {progress.GroupFailedCount}.");
+                int totalInGroup = Math.Max(
+                    progress.GroupTestCaseCount,
+                    progress.GroupPassedCount + progress.GroupFailedCount);
+                RenderGroupProgress(totalInGroup, totalInGroup);
+                // EnsureCursorBelowProgressBar();
+                double passedPercent = totalInGroup == 0
+                    ? 0d
+                    : (double)progress.GroupPassedCount * 100d / totalInGroup;
+
+                string groupName = progress.GroupDisplayName ?? progress.GroupId ?? "<unknown>";
+                string summary =
+                    $"\n  Group done: {groupName} - {passedPercent:0.#}% passed ({progress.GroupPassedCount}/{totalInGroup}).\n";
+
+                if (progress.GroupFailedCount == 0)
+                {
+                    WritePass(summary);
+                }
+                else
+                {
+                    WriteWarn(summary);
+                }
+
                 break;
 
             case TestRunProgressKind.Stop:
+                CloseGroupProgressLine();
                 WriteWarn(
                     $"Run stopped: {progress.ReasonCode ?? StopReasonCodes.ServerStop}" +
                     $"{FormatDetail(progress.ReasonDetail)}");
@@ -139,6 +186,7 @@ internal sealed class ConsoleProgressRenderer
 
     public void PrintSummary(TestRunSummary summary)
     {
+        CloseGroupProgressLine();
         WriteHeader("Final summary");
         WriteInfo($"Groups: {summary.TestGroupCount}");
         WriteInfo($"Testcases: {summary.TestCaseCount}");
@@ -160,33 +208,88 @@ internal sealed class ConsoleProgressRenderer
         }
     }
 
-    private void PrintTestCaseResult(TestRunProgress progress)
-    {
-        string testcaseId = progress.TestCaseId ?? "<unknown>";
-        bool passed = string.Equals(progress.TestCaseStatus, TestCaseResultStatuses.Passed, StringComparison.OrdinalIgnoreCase);
-
-        if (passed)
-        {
-            WritePass(
-                $"  PASS {testcaseId}  " +
-                $"[group {progress.GroupPassedCount}/{progress.GroupTestCaseCount}, total {progress.TotalPassedCount} passed]");
-            return;
-        }
-
-        string detail = $"{FormatDetail(progress.ReasonCode)}{FormatDetail(progress.ReasonDetail)}";
-        WriteFail(
-            $"  FAIL {testcaseId}  " +
-            $"[group failed {progress.GroupFailedCount}, total failed {progress.TotalFailedCount}]{detail}");
-    }
-
     private static string FormatDetail(string? value)
     {
         return string.IsNullOrWhiteSpace(value) ? string.Empty : $" - {value}";
     }
 
+    private void RenderGroupProgress(int completedInGroup, int totalInGroup)
+    {
+        int total = Math.Max(0, totalInGroup);
+        int completed = Math.Clamp(completedInGroup, 0, total);
+        int filled = total == 0 ? 0 : (int)Math.Round((double)completed * ProgressBarWidth / total);
+        filled = Math.Clamp(filled, 0, ProgressBarWidth);
+        double percent = total == 0 ? 0d : (double)completed * 100d / total;
+
+        string bar = $"{new string('#', filled)}{new string('-', ProgressBarWidth - filled)}";
+        string line = $"\n  Progress: [{bar}] {completed}/{total} ({percent:#}%)";
+
+        int paddedLength = Math.Max(_lastProgressLineLength, line.Length);
+
+        if (!_useCursorAnchor || _progressBarTop < 0)
+        {
+            Console.Write(line.PadRight(paddedLength));
+            _groupProgressLineActive = true;
+            _lastProgressLineLength = paddedLength;
+            return;
+        }
+
+        int userLeft = Console.CursorLeft;
+        int userTop = Console.CursorTop;
+        ConsoleColor fg = Console.ForegroundColor;
+        ConsoleColor bg = Console.BackgroundColor;
+
+        try
+        {
+            Console.ResetColor();
+            Console.SetCursorPosition(_progressBarLeft, _progressBarTop);
+            Console.Write(line.PadRight(paddedLength));
+
+            int belowBarTop = Math.Min(_progressBarTop + 1, Console.BufferHeight - 1);
+            int restoreTop = Math.Max(userTop, belowBarTop);
+            int restoreLeft = restoreTop == userTop ? userLeft : 0;
+            Console.SetCursorPosition(restoreLeft, restoreTop);
+        }
+        finally
+        {
+            Console.ForegroundColor = fg;
+            Console.BackgroundColor = bg;
+        }
+
+        _groupProgressLineActive = true;
+        _lastProgressLineLength = paddedLength;
+    }
+
+    private void CloseGroupProgressLine()
+    {
+        if (!_groupProgressLineActive)
+        {
+            return;
+        }
+
+        if (!_useCursorAnchor)
+        {
+            Console.WriteLine();
+        }
+
+        _groupProgressLineActive = false;
+        _lastProgressLineLength = 0;
+        _progressBarTop = -1;
+    }
+
+    private void EnsureCursorBelowProgressBar()
+    {
+        if (!_useCursorAnchor || _progressBarTop < 0)
+        {
+            return;
+        }
+
+        int targetTop = Math.Min(_progressBarTop + 1, Console.BufferHeight - 1);
+        Console.SetCursorPosition(0, targetTop);
+    }
+
     private static void WriteHeader(string text)
     {
-        Console.WriteLine();
         WriteWithColor(text, ConsoleColor.Cyan);
     }
 

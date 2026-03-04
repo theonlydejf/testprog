@@ -25,7 +25,7 @@ public sealed class StudentClientOptions
     /// <summary>
     /// Direct TCP port used together with <see cref="ServerHost"/>.
     /// </summary>
-    public int ServerPort { get; init; } = 5000;
+    public int ServerPort { get; init; } = 5001;
 
     /// <summary>
     /// Multicast address used for UDP server discovery.

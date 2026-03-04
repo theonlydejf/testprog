@@ -36,7 +36,7 @@ internal static class Program
         Directory.CreateDirectory(Path.GetDirectoryName(logFilePath)!);
 
         using ServerFileLogger logger = new(logFilePath);
-        StudentStateTracker tracker = new();
+        StudentStateTracker tracker = new(loaded.Suite.Groups.Count);
         DashboardRenderer renderer = new(
             loaded.ServerOptions,
             loaded.Suite,
@@ -356,7 +356,7 @@ internal sealed class DashboardRenderer
             $"{Pad("Name", 22)} " +
             $"{Pad("Status", 20)} " +
             $"{Pad("Group", 18)} " +
-            $"{Pad("P/F/T", 11)} " +
+            $"{Pad("Groups C/T", 11)} " +
             $"{Pad("Last Reason", 26)} " +
             $"{Pad("Updated", 14)}");
     }
@@ -371,7 +371,7 @@ internal sealed class DashboardRenderer
             $"{Pad(student.DisplayName, 22)} " +
             $"{Pad(student.Status, 20)} " +
             $"{Pad(student.CurrentGroup, 18)} " +
-            $"{Pad($"{student.PassedCount}/{student.FailedCount}/{student.PassedCount + student.FailedCount}", 11)} " +
+            $"{Pad($"{student.CompletedGroupCount}/{student.TotalGroupCount}", 11)} " +
             $"{Pad(student.LastReason, 26)} " +
             $"{Pad(student.LastUpdatedUtc.ToLocalTime().ToString("HH:mm:ss"), 14)}");
 
@@ -380,8 +380,8 @@ internal sealed class DashboardRenderer
 
     private static ConsoleColor RowColor(StudentState student)
     {
-        int total = student.PassedCount + student.FailedCount;
-        if (total > 0 && (student.PassedCount * 2) < total)
+        if (student.ProcessedGroupCount > 0 &&
+            (student.CompletedGroupCount * 2) < student.ProcessedGroupCount)
         {
             return ConsoleColor.Red;
         }
@@ -417,9 +417,16 @@ internal sealed class DashboardRenderer
 
 internal sealed class StudentStateTracker
 {
+    private readonly int _totalGroupCount;
     private readonly Dictionary<string, StudentState> _students = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, string> _sessionToStudentKey = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, int> _groupFailedBaseline = new(StringComparer.OrdinalIgnoreCase);
     private readonly object _lock = new();
+
+    public StudentStateTracker(int totalGroupCount)
+    {
+        _totalGroupCount = Math.Max(0, totalGroupCount);
+    }
 
     public void Apply(TestServerRuntimeEvent runtimeEvent)
     {
@@ -446,10 +453,43 @@ internal sealed class StudentStateTracker
             state.FailedCount = runtimeEvent.FailedCount;
             state.LastReason = runtimeEvent.ReasonCode ?? runtimeEvent.ReasonDetail ?? state.LastReason;
             state.LastUpdatedUtc = runtimeEvent.OccurredAtUtc;
+            state.TotalGroupCount = _totalGroupCount;
 
             if (!string.IsNullOrWhiteSpace(runtimeEvent.SessionToken))
             {
                 _sessionToStudentKey[runtimeEvent.SessionToken] = key;
+            }
+
+            switch (runtimeEvent.Kind)
+            {
+                case TestServerRuntimeEventKind.SessionStarted:
+                    state.CurrentGroup = "-";
+                    state.CompletedGroupCount = 0;
+                    state.ProcessedGroupCount = 0;
+                    state.LastReason = "-";
+                    _groupFailedBaseline.Remove(key);
+                    break;
+                case TestServerRuntimeEventKind.TestGroupStarted:
+                    _groupFailedBaseline[key] = runtimeEvent.FailedCount;
+                    break;
+                case TestServerRuntimeEventKind.TestGroupEnded:
+                    state.ProcessedGroupCount += 1;
+                    if (_groupFailedBaseline.TryGetValue(key, out int failedBeforeGroup))
+                    {
+                        if (runtimeEvent.FailedCount == failedBeforeGroup)
+                        {
+                            state.CompletedGroupCount += 1;
+                        }
+
+                        _groupFailedBaseline.Remove(key);
+                    }
+                    break;
+                case TestServerRuntimeEventKind.SessionCompleted:
+                case TestServerRuntimeEventKind.SessionStopped:
+                case TestServerRuntimeEventKind.SessionRejected:
+                case TestServerRuntimeEventKind.SessionFaulted:
+                    _groupFailedBaseline.Remove(key);
+                    break;
             }
 
             state.Status = runtimeEvent.Kind switch
@@ -458,7 +498,8 @@ internal sealed class StudentStateTracker
                 TestServerRuntimeEventKind.TestGroupStarted => "Running",
                 TestServerRuntimeEventKind.TestCaseEvaluated => "Running",
                 TestServerRuntimeEventKind.TestGroupEnded => "Running",
-                TestServerRuntimeEventKind.SessionCompleted => state.FailedCount == 0 ? "Completed" : "Completed (partial)",
+                TestServerRuntimeEventKind.SessionCompleted =>
+                    state.CompletedGroupCount >= state.TotalGroupCount ? "Completed" : "Completed (partial)",
                 TestServerRuntimeEventKind.SessionRejected => "Rejected",
                 TestServerRuntimeEventKind.SessionStopped => "Stopped",
                 TestServerRuntimeEventKind.SessionFaulted => "Error",
@@ -518,6 +559,9 @@ internal sealed class StudentState
     public string CurrentGroup { get; set; } = "-";
     public int PassedCount { get; set; }
     public int FailedCount { get; set; }
+    public int TotalGroupCount { get; set; }
+    public int CompletedGroupCount { get; set; }
+    public int ProcessedGroupCount { get; set; }
     public string LastReason { get; set; } = "-";
     public DateTimeOffset LastUpdatedUtc { get; set; } = DateTimeOffset.UtcNow;
 
@@ -532,6 +576,9 @@ internal sealed class StudentState
             CurrentGroup = CurrentGroup,
             PassedCount = PassedCount,
             FailedCount = FailedCount,
+            TotalGroupCount = TotalGroupCount,
+            CompletedGroupCount = CompletedGroupCount,
+            ProcessedGroupCount = ProcessedGroupCount,
             LastReason = LastReason,
             LastUpdatedUtc = LastUpdatedUtc
         };

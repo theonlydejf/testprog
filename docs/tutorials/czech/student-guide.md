@@ -72,7 +72,7 @@ internal static class Program
         return StudentConsoleTestRunner.RunWithExitCode(options, Solve);
     }
 
-    public static int Solve(TestInput input)
+    public static object Solve(TestInput input)
     {
         int a = input.GetInt("a");
         int b = input.GetInt("b");
