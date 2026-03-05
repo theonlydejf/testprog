@@ -48,6 +48,10 @@ public sealed class TestServerRuntimeEvent
     public string? GroupDisplayName { get; init; }
     /// <summary>Testcase identifier related to this event.</summary>
     public string? TestCaseId { get; init; }
+    /// <summary>Serialized testcase input JSON sent to the client.</summary>
+    public string? TestCaseInputJson { get; init; }
+    /// <summary>Serialized testcase answer JSON received from the client.</summary>
+    public string? TestCaseAnswerJson { get; init; }
     /// <summary>Testcase textual status when available.</summary>
     public string? TestCaseStatus { get; init; }
     /// <summary>Total passed testcase count at event time.</summary>

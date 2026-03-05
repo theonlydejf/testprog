@@ -490,6 +490,8 @@ public sealed class TestServerHost : IAsyncDisposable
                         GroupId = group.GroupId,
                         GroupDisplayName = group.DisplayName,
                         TestCaseId = testcase.TestCaseId,
+                        TestCaseInputJson = testcase.Input.ToString(Formatting.None),
+                        TestCaseAnswerJson = solved.Output?.ToString(Formatting.None),
                         TestCaseStatus = result.Status,
                         PassedCount = passed,
                         FailedCount = failed,

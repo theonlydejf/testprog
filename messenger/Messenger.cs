@@ -38,6 +38,8 @@ public static class TestProgClient
         try
         {
             endpoint = await ServerDiscovery.ResolveAsync(options, timeoutCts.Token).ConfigureAwait(false);
+            Console.WriteLine(endpoint.Host);
+            Console.WriteLine(endpoint.Port);
             channel = await FramedTcpChannel.ConnectAsync(endpoint.Host, endpoint.Port, timeoutCts.Token)
                 .ConfigureAwait(false);
         }

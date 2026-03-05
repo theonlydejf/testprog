@@ -249,9 +249,25 @@ internal sealed class ServerFileLogger : IDisposable
             $"status={runtimeEvent.TestCaseStatus ?? "-"} " +
             $"passed={runtimeEvent.PassedCount} failed={runtimeEvent.FailedCount} " +
             $"reasonCode={runtimeEvent.ReasonCode ?? "-"} " +
-            $"reasonDetail={runtimeEvent.ReasonDetail ?? "-"}";
+            $"reasonDetail={runtimeEvent.ReasonDetail ?? "-"} " +
+            $"inputJson=\"{EscapeQuotedValue(runtimeEvent.TestCaseInputJson)}\" " +
+            $"answerJson=\"{EscapeQuotedValue(runtimeEvent.TestCaseAnswerJson)}\"";
 
         WriteLine(line);
+    }
+
+    private static string EscapeQuotedValue(string? value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return "-";
+        }
+
+        return value
+            .Replace("\\", "\\\\", StringComparison.Ordinal)
+            .Replace("\"", "\\\"", StringComparison.Ordinal)
+            .Replace("\r", "\\r", StringComparison.Ordinal)
+            .Replace("\n", "\\n", StringComparison.Ordinal);
     }
 
     private void WriteLine(string line)
