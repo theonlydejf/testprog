@@ -220,6 +220,34 @@ public class ServerValidationTests
     }
 
     [Test]
+    public void Constructor_TestCaseTimeoutMustBePositive_Throws()
+    {
+        TestSuiteDefinition suite = new()
+        {
+            Groups = new[]
+            {
+                new TestGroupDefinition
+                {
+                    GroupId = "basic",
+                    DisplayName = "Basic",
+                    TestCases = new[]
+                    {
+                        new TestCaseDefinition
+                        {
+                            TestCaseId = "t1",
+                            Input = JObject.FromObject(new { a = 1, b = 2 }),
+                            ExpectedOutput = JObject.FromObject(new { result = 3 }),
+                            ResponseTimeout = TimeSpan.Zero
+                        }
+                    }
+                }
+            }
+        };
+
+        Assert.That(() => new TestServerHost(ValidOptions(), suite), Throws.TypeOf<ArgumentException>());
+    }
+
+    [Test]
     public void Constructor_TestCaseWithBothExpectedSources_Throws()
     {
         TestSuiteDefinition suite = new()
@@ -273,6 +301,33 @@ public class ServerValidationTests
                                 SourceFilePath = Path.Combine(Path.GetTempPath(), $"missing-golden-{Guid.NewGuid():N}.cs")
                             }
                         }
+                    }
+                }
+            }
+        };
+
+        Assert.That(() => new TestServerHost(ValidOptions(), suite), Throws.TypeOf<ArgumentException>());
+    }
+
+    [Test]
+    public void Constructor_RandomGroupTimeoutMustBePositive_Throws()
+    {
+        RandomTestGroupDefinition validRandom = ValidRandomGroup();
+        TestSuiteDefinition suite = new()
+        {
+            Groups = new[]
+            {
+                new TestGroupDefinition
+                {
+                    GroupId = "rand",
+                    DisplayName = "Random",
+                    Randomized = new RandomTestGroupDefinition
+                    {
+                        Count = 3,
+                        TestCaseIdPrefix = "r-",
+                        ResponseTimeout = TimeSpan.Zero,
+                        GoldenStandard = validRandom.GoldenStandard,
+                        InputGenerator = validRandom.InputGenerator
                     }
                 }
             }

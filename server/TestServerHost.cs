@@ -440,6 +440,7 @@ public sealed class TestServerHost : IAsyncDisposable
                     ProtocolEnvelope? solvedEnvelope = await ReceiveClientResponseAsync(
                         channel,
                         sessionToken,
+                        testcase,
                         cancellationToken).ConfigureAwait(false);
 
                     if (solvedEnvelope is null)
@@ -491,6 +492,8 @@ public sealed class TestServerHost : IAsyncDisposable
                         GroupId = group.GroupId,
                         GroupDisplayName = group.DisplayName,
                         TestCaseId = testcase.TestCaseId,
+                        TestCaseInputJson = testcase.Input.ToString(Formatting.None),
+                        TestCaseAnswerJson = solved.Output?.ToString(Formatting.None),
                         TestCaseStatus = result.Status,
                         PassedCount = passed,
                         FailedCount = failed,
@@ -611,11 +614,21 @@ public sealed class TestServerHost : IAsyncDisposable
     private async Task<ProtocolEnvelope?> ReceiveClientResponseAsync(
         FramedTcpChannel channel,
         string sessionToken,
+        TestCaseDefinition testcase,
         CancellationToken cancellationToken)
     {
+        TimeSpan responseTimeout = GetResponseTimeout(testcase);
+        using CancellationTokenSource testcaseTimeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        testcaseTimeoutCts.CancelAfter(responseTimeout);
+
         while (true)
         {
-            ProtocolEnvelope envelope = await ReceiveWithTimeoutAsync(channel, cancellationToken).ConfigureAwait(false);
+            ProtocolEnvelope envelope = await ReceiveUntilDeadlineAsync(
+                channel,
+                cancellationToken,
+                testcaseTimeoutCts.Token,
+                responseTimeout,
+                testcase.TestCaseId).ConfigureAwait(false);
             EnsureSessionToken(sessionToken, envelope);
 
             switch (envelope.Type)
@@ -635,6 +648,11 @@ public sealed class TestServerHost : IAsyncDisposable
         }
     }
 
+    private TimeSpan GetResponseTimeout(TestCaseDefinition testcase)
+    {
+        return testcase.ResponseTimeout ?? _options.ClientResponseTimeout;
+    }
+
     private async Task<ProtocolEnvelope> ReceiveWithTimeoutAsync(
         FramedTcpChannel channel,
         CancellationToken cancellationToken)
@@ -650,6 +668,26 @@ public sealed class TestServerHost : IAsyncDisposable
         {
             throw new TimeoutException(
                 $"No client message arrived in {_options.ClientResponseTimeout.TotalSeconds:0.##}s.");
+        }
+    }
+
+    private static async Task<ProtocolEnvelope> ReceiveUntilDeadlineAsync(
+        FramedTcpChannel channel,
+        CancellationToken cancellationToken,
+        CancellationToken deadlineToken,
+        TimeSpan timeout,
+        string testcaseId)
+    {
+        try
+        {
+            return await channel.ReceiveAsync(deadlineToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (
+            !cancellationToken.IsCancellationRequested &&
+            deadlineToken.IsCancellationRequested)
+        {
+            throw new TimeoutException(
+                $"Client did not finish testcase '{testcaseId}' within {timeout.TotalSeconds:0.##}s.");
         }
     }
 
@@ -787,7 +825,8 @@ public sealed class TestServerHost : IAsyncDisposable
                 Input = (JObject)input.DeepClone(),
                 ExpectedOutput = null,
                 GoldenStandard = randomized.GoldenStandard,
-                ComparisonMode = randomized.ComparisonMode
+                ComparisonMode = randomized.ComparisonMode,
+                ResponseTimeout = randomized.ResponseTimeout
             });
         }
 

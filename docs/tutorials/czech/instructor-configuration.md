@@ -49,6 +49,7 @@ Obě sekce jsou povinné.
 
 - timeout na odpověď klienta na testcase
 - musí být > 0
+- používá se jako default, pokud testcase nebo random skupina nemá vlastní `timeoutSeconds`
 
 ### `studentIdWhitelist` (array<string>)
 
@@ -74,6 +75,7 @@ Každá skupina musí mít přesně jeden zdroj testů:
   "testcases": [
     {
       "id": "sum-001",
+      "timeoutSeconds": 2.5,
       "comparisonMode": "strict-json",
       "input": {
         "mode": "inline",
@@ -92,6 +94,7 @@ Pravidla:
   - `expectedOutput`
   - `goldenStandard`
 - `id` testcase musí být unikátní v rámci skupiny
+- volitelné `timeoutSeconds` přepíše serverový default pro tento testcase
 
 ## `goldenStandard` v testcase
 
@@ -119,6 +122,7 @@ public static object Solve(JObject input)
     "count": 10,
     "testCaseIdPrefix": "random-",
     "seed": 42,
+    "timeoutSeconds": 15,
     "comparisonMode": "strict-json",
     "goldenStandard": {
       "sourceFile": "sum-golden-standard.cs"
@@ -138,6 +142,7 @@ Povinné části random skupiny:
 
 - `goldenStandard`
 - `inputGenerator`
+- volitelné `timeoutSeconds` přepíše serverový default pro každý vygenerovaný testcase ve skupině
 
 ### `inputGenerator.mode = default`
 

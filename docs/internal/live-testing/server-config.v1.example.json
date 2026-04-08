@@ -21,6 +21,7 @@
         "testcases": [
           {
             "id": "sum-001",
+            "timeoutSeconds": 2.5,
             "comparisonMode": "strict-json",
             "input": {
               "mode": "inline",
@@ -58,6 +59,7 @@
           "count": 5,
           "testCaseIdPrefix": "sum-rand-",
           "seed": 12345,
+          "timeoutSeconds": 15,
           "comparisonMode": "strict-json",
           "goldenStandard": {
             "sourceFile": "golden/SumGolden.cs",
@@ -88,6 +90,7 @@
           "count": 5,
           "testCaseIdPrefix": "sum-script-rand-",
           "seed": 20260218,
+          "timeoutSeconds": 15,
           "comparisonMode": "strict-json",
           "goldenStandard": {
             "sourceFile": "golden/SumGolden.cs",

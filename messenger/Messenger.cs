@@ -38,6 +38,8 @@ public static class TestProgClient
         try
         {
             endpoint = await ServerDiscovery.ResolveAsync(options, timeoutCts.Token).ConfigureAwait(false);
+            Console.WriteLine(endpoint.Host);
+            Console.WriteLine(endpoint.Port);
             channel = await FramedTcpChannel.ConnectAsync(endpoint.Host, endpoint.Port, timeoutCts.Token)
                 .ConfigureAwait(false);
         }
@@ -417,6 +419,12 @@ internal sealed class ConnectedTestProgClient : ITestProgClient
     private bool _hasRun;
     private bool _disposed;
 
+    private enum TestCaseSendOutcome
+    {
+        Sent = 0,
+        ChannelUnavailable = 1
+    }
+
     public ConnectedTestProgClient(FramedTcpChannel channel, string sessionToken, TimeSpan heartbeatTimeout)
     {
         _channel = channel ?? throw new ArgumentNullException(nameof(channel));
@@ -481,15 +489,36 @@ internal sealed class ConnectedTestProgClient : ITestProgClient
         TestGroupStartPayload? currentGroup = null;
         int currentGroupPassed = 0;
         int currentGroupFailed = 0;
+        // If the server timed out while the solver was still running, a late send can fail.
+        // In that case, try to drain the terminal server message instead of crashing the client.
+        bool recoveringAfterSendFailure = false;
 
         while (true)
         {
-            ProtocolEnvelope envelope = await ReceiveWithHeartbeatTimeoutAsync(cancellationToken).ConfigureAwait(false);
+            ProtocolEnvelope? envelope = recoveringAfterSendFailure
+                ? await TryReceiveAfterSendFailureAsync(cancellationToken).ConfigureAwait(false)
+                : await ReceiveWithHeartbeatTimeoutAsync(cancellationToken).ConfigureAwait(false);
+
+            if (envelope is null)
+            {
+                FinalizeAbortedRunSummary(summary);
+                EmitProgress(onProgress, new TestRunProgress
+                {
+                    Kind = TestRunProgressKind.Stop,
+                    ReasonCode = summary.StopReasonCode,
+                    ReasonDetail = summary.StopReasonDetail,
+                    TotalPassedCount = summary.PassedCount,
+                    TotalFailedCount = summary.FailedCount
+                });
+                return summary;
+            }
+
             EnsureSessionToken(envelope);
 
             switch (envelope.Type)
             {
                 case MessageTypes.TestBegin:
+                    recoveringAfterSendFailure = false;
                     EmitProgress(onProgress, new TestRunProgress
                     {
                         Kind = TestRunProgressKind.TestBegin
@@ -512,8 +541,10 @@ internal sealed class ConnectedTestProgClient : ITestProgClient
                     currentGroup = null;
                     currentGroupPassed = 0;
                     currentGroupFailed = 0;
+                    recoveringAfterSendFailure = false;
                     break;
                 case MessageTypes.Ping:
+                    recoveringAfterSendFailure = false;
                     await SendEnvelopeAsync(MessageTypes.Pong, null, cancellationToken).ConfigureAwait(false);
                     break;
                 case MessageTypes.TestGroupStart:
@@ -521,6 +552,7 @@ internal sealed class ConnectedTestProgClient : ITestProgClient
                     currentGroup = ProtocolSerializer.DeserializePayload<TestGroupStartPayload>(envelope);
                     currentGroupPassed = 0;
                     currentGroupFailed = 0;
+                    recoveringAfterSendFailure = false;
                     EmitProgress(onProgress, new TestRunProgress
                     {
                         Kind = TestRunProgressKind.TestGroupStart,
@@ -547,9 +579,11 @@ internal sealed class ConnectedTestProgClient : ITestProgClient
                         TotalFailedCount = summary.FailedCount
                     });
 
-                    await SolveAndRespondAsync(envelope, solveAsync, cancellationToken).ConfigureAwait(false);
+                    recoveringAfterSendFailure = await SolveAndRespondAsync(envelope, solveAsync, cancellationToken)
+                        .ConfigureAwait(false) == TestCaseSendOutcome.ChannelUnavailable;
                     break;
                 case MessageTypes.TestCaseResult:
+                    recoveringAfterSendFailure = false;
                     TestCaseResultPayload result = ApplyResult(summary, envelope);
                     if (string.Equals(result.Status, TestCaseResultStatuses.Passed, StringComparison.OrdinalIgnoreCase))
                     {
@@ -577,6 +611,7 @@ internal sealed class ConnectedTestProgClient : ITestProgClient
                     });
                     break;
                 case MessageTypes.TestEnd:
+                    recoveringAfterSendFailure = false;
                     summary.Completed = true;
                     summary.FinishedAtUtc = DateTimeOffset.UtcNow;
                     EmitProgress(onProgress, new TestRunProgress
@@ -587,6 +622,7 @@ internal sealed class ConnectedTestProgClient : ITestProgClient
                     });
                     return summary;
                 case MessageTypes.Stop:
+                    recoveringAfterSendFailure = false;
                     ApplyStop(summary, envelope);
                     summary.FinishedAtUtc = DateTimeOffset.UtcNow;
                     EmitProgress(onProgress, new TestRunProgress
@@ -599,6 +635,21 @@ internal sealed class ConnectedTestProgClient : ITestProgClient
                     });
                     return summary;
                 case MessageTypes.Error:
+                    if (recoveringAfterSendFailure)
+                    {
+                        ApplyErrorAsStop(summary, envelope);
+                        summary.FinishedAtUtc = DateTimeOffset.UtcNow;
+                        EmitProgress(onProgress, new TestRunProgress
+                        {
+                            Kind = TestRunProgressKind.Stop,
+                            ReasonCode = summary.StopReasonCode,
+                            ReasonDetail = summary.StopReasonDetail,
+                            TotalPassedCount = summary.PassedCount,
+                            TotalFailedCount = summary.FailedCount
+                        });
+                        return summary;
+                    }
+
                     throw CreateProtocolException(envelope);
                 default:
                     throw new InvalidOperationException($"Unknown message type '{envelope.Type}'.");
@@ -655,7 +706,7 @@ internal sealed class ConnectedTestProgClient : ITestProgClient
         await _channel.DisposeAsync().ConfigureAwait(false);
     }
 
-    private async Task SolveAndRespondAsync(
+    private async Task<TestCaseSendOutcome> SolveAndRespondAsync(
         ProtocolEnvelope testcaseEnvelope,
         Func<TestInput, Task<object?>> solveAsync,
         CancellationToken cancellationToken)
@@ -666,33 +717,65 @@ internal sealed class ConnectedTestProgClient : ITestProgClient
             throw new InvalidOperationException("Received testcase without testcaseId.");
         }
 
-        object? solved;
+        TestCaseSolvedPayload solvedPayload;
         try
         {
             TestInput input = new(testcase.Input ?? new JObject());
-            solved = await solveAsync(input).ConfigureAwait(false);
+            object? solved = await solveAsync(input).ConfigureAwait(false);
+            solvedPayload = CreateSolvedPayload(testcase.TestCaseId, solved);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             throw;
         }
         catch (Exception ex)
         {
-            await StopAsync(
-                StopReasonCodes.InvalidAnswer,
-                $"Student solver threw exception: {ex.Message}",
-                cancellationToken).ConfigureAwait(false);
-            throw;
+            // Treat local solver failures as a failed testcase answer so the session can continue.
+            solvedPayload = CreateFallbackSolvedPayload(testcase.TestCaseId, ex.Message);
         }
 
-        TestOutput output = TestOutput.FromObject(solved);
-        TestCaseSolvedPayload solvedPayload = new()
+        try
         {
-            TestCaseId = testcase.TestCaseId,
+            await SendEnvelopeAsync(MessageTypes.TestCaseSolved, solvedPayload, cancellationToken).ConfigureAwait(false);
+            return TestCaseSendOutcome.Sent;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (ObjectDisposedException)
+        {
+            return TestCaseSendOutcome.ChannelUnavailable;
+        }
+        catch (IOException)
+        {
+            return TestCaseSendOutcome.ChannelUnavailable;
+        }
+        catch (SocketException)
+        {
+            return TestCaseSendOutcome.ChannelUnavailable;
+        }
+    }
+
+    private static TestCaseSolvedPayload CreateSolvedPayload(string testcaseId, object? solved)
+    {
+        TestOutput output = TestOutput.FromObject(solved);
+        return new TestCaseSolvedPayload
+        {
+            TestCaseId = testcaseId,
             Output = output.Payload
         };
+    }
 
-        await SendEnvelopeAsync(MessageTypes.TestCaseSolved, solvedPayload, cancellationToken).ConfigureAwait(false);
+    private static TestCaseSolvedPayload CreateFallbackSolvedPayload(string testcaseId, string? reason)
+    {
+        return CreateSolvedPayload(
+            testcaseId,
+            new
+            {
+                clientFailure = true,
+                reason = string.IsNullOrWhiteSpace(reason) ? "Student solver failed." : reason
+            });
     }
 
     private TestCaseResultPayload ApplyResult(TestRunSummary summary, ProtocolEnvelope resultEnvelope)
@@ -744,6 +827,31 @@ internal sealed class ConnectedTestProgClient : ITestProgClient
             summary.StopReasonCode = StopReasonCodes.ServerStop;
             summary.StopReasonDetail = "Stop payload is invalid.";
         }
+    }
+
+    private void ApplyErrorAsStop(TestRunSummary summary, ProtocolEnvelope errorEnvelope)
+    {
+        try
+        {
+            ErrorPayload payload = ProtocolSerializer.DeserializePayload<ErrorPayload>(errorEnvelope);
+            summary.StopReasonCode = string.IsNullOrWhiteSpace(payload.ReasonCode)
+                ? StopReasonCodes.InternalServerError
+                : payload.ReasonCode;
+            summary.StopReasonDetail = payload.ReasonDetail ?? "Server reported an unspecified protocol error.";
+        }
+        catch (JsonException)
+        {
+            summary.StopReasonCode = StopReasonCodes.InternalServerError;
+            summary.StopReasonDetail = "Server sent invalid error payload.";
+        }
+    }
+
+    private void FinalizeAbortedRunSummary(TestRunSummary summary)
+    {
+        summary.FinishedAtUtc = DateTimeOffset.UtcNow;
+        summary.StopReasonCode ??= StopReasonCodes.Timeout;
+        summary.StopReasonDetail ??=
+            "Connection closed while sending testcase result. The server likely stopped the run due to a testcase timeout.";
     }
 
     private Exception CreateProtocolException(ProtocolEnvelope errorEnvelope)
@@ -800,6 +908,33 @@ internal sealed class ConnectedTestProgClient : ITestProgClient
                 CancellationToken.None).ConfigureAwait(false);
 
             throw new TimeoutException("Connection timed out while waiting for server message.");
+        }
+    }
+
+    private async Task<ProtocolEnvelope?> TryReceiveAfterSendFailureAsync(CancellationToken cancellationToken)
+    {
+        using CancellationTokenSource heartbeatCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        heartbeatCts.CancelAfter(_heartbeatTimeout);
+
+        try
+        {
+            return await _channel.ReceiveAsync(heartbeatCts.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return null;
+        }
+        catch (ObjectDisposedException)
+        {
+            return null;
+        }
+        catch (IOException)
+        {
+            return null;
+        }
+        catch (SocketException)
+        {
+            return null;
         }
     }
 

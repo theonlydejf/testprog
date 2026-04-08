@@ -213,7 +213,8 @@ public static class TestServerConfigurationLoader
             Input = (JObject)inputObject.DeepClone(),
             ExpectedOutput = expectedOutput,
             GoldenStandard = goldenStandard,
-            ComparisonMode = comparisonMode
+            ComparisonMode = comparisonMode,
+            ResponseTimeout = GetOptionalTimeSpanSeconds(node, "timeoutSeconds")
         };
     }
 
@@ -249,6 +250,7 @@ public static class TestServerConfigurationLoader
             TestCaseIdPrefix = GetOptionalString(node, "testCaseIdPrefix", "random-"),
             Seed = GetOptionalNullableInt(node, "seed"),
             ComparisonMode = comparisonMode,
+            ResponseTimeout = GetOptionalTimeSpanSeconds(node, "timeoutSeconds"),
             GoldenStandard = ParseGoldenStandard(goldenStandardNode, baseDirectory),
             InputGenerator = ParseRandomInputGenerator(inputGeneratorNode, baseDirectory)
         };
@@ -453,6 +455,26 @@ public static class TestServerConfigurationLoader
         }
 
         return token.Value<double>();
+    }
+
+    private static TimeSpan? GetOptionalTimeSpanSeconds(JObject node, string propertyName)
+    {
+        if (!node.TryGetValue(propertyName, StringComparison.Ordinal, out JToken? token))
+        {
+            return null;
+        }
+
+        if (token.Type == JTokenType.Null)
+        {
+            return null;
+        }
+
+        if (token.Type is not JTokenType.Float and not JTokenType.Integer)
+        {
+            throw new ArgumentException($"Property '{propertyName}' must be a number.");
+        }
+
+        return TimeSpan.FromSeconds(token.Value<double>());
     }
 
     private static IReadOnlyList<string> GetOptionalStringArray(JObject node, string propertyName)
