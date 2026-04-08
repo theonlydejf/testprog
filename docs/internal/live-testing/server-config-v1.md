@@ -22,6 +22,8 @@ The server is configured from a single JSON document with `server` and `suite` s
 - `clientResponseTimeoutSeconds` (number, optional, default: `10`)
 - `studentIdWhitelist` (array<string>, optional)
 
+`clientResponseTimeoutSeconds` is the default timeout used when a testcase or random group does not set its own `timeoutSeconds`.
+
 Whitelist behavior:
 
 - missing or empty whitelist: all student IDs are accepted
@@ -45,6 +47,7 @@ Each group must define exactly one testcase source:
   "testcases": [
     {
       "id": "sum-001",
+      "timeoutSeconds": 2.5,
       "comparisonMode": "strict-json",
       "input": {
         "mode": "inline",
@@ -61,6 +64,7 @@ Testcase rules:
 - `id` is required and must be unique within the group
 - `input.mode` currently supports only `inline`
 - exactly one of `expectedOutput` or `goldenStandard` is required
+- `timeoutSeconds` (number, optional) overrides `server.clientResponseTimeoutSeconds` for this testcase
 
 `comparisonMode`:
 
@@ -77,6 +81,7 @@ Testcase rules:
     "count": 10,
     "testCaseIdPrefix": "random-",
     "seed": 42,
+    "timeoutSeconds": 15,
     "comparisonMode": "strict-json",
     "goldenStandard": {
       "sourceFile": "sum-golden-standard.cs"
@@ -97,6 +102,7 @@ Random group requirements:
 - `goldenStandard` is required
 - `inputGenerator` is required
 - `count` must be greater than 0
+- `timeoutSeconds` (number, optional) overrides `server.clientResponseTimeoutSeconds` for every generated testcase in the group
 
 Input generator modes:
 

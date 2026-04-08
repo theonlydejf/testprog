@@ -49,6 +49,7 @@ Both sections are required.
 
 - timeout for student response to a testcase
 - must be > 0
+- used as default when a testcase or random group does not define its own `timeoutSeconds`
 
 ### `studentIdWhitelist` (array<string>)
 
@@ -74,6 +75,7 @@ Every group must define exactly one testcase source:
   "testcases": [
     {
       "id": "sum-001",
+      "timeoutSeconds": 2.5,
       "comparisonMode": "strict-json",
       "input": {
         "mode": "inline",
@@ -92,6 +94,7 @@ Rules:
   - `expectedOutput`
   - `goldenStandard`
 - testcase IDs must be unique inside the group
+- optional `timeoutSeconds` overrides the server default for this testcase
 
 ## `goldenStandard` in testcase
 
@@ -119,6 +122,7 @@ public static object Solve(JObject input)
     "count": 10,
     "testCaseIdPrefix": "random-",
     "seed": 42,
+    "timeoutSeconds": 15,
     "comparisonMode": "strict-json",
     "goldenStandard": {
       "sourceFile": "sum-golden-standard.cs"
@@ -138,6 +142,7 @@ Required parts for random groups:
 
 - `goldenStandard`
 - `inputGenerator`
+- optional `timeoutSeconds` overrides the server default for every generated testcase in the group
 
 ### `inputGenerator.mode = default`
 

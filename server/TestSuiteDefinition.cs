@@ -132,6 +132,11 @@ public sealed class TestCaseDefinition
     /// </summary>
     public TestCaseComparisonMode ComparisonMode { get; init; } = TestCaseComparisonMode.StrictJson;
 
+    /// <summary>
+    /// Optional timeout override for this testcase.
+    /// </summary>
+    public TimeSpan? ResponseTimeout { get; init; }
+
     internal void Validate()
     {
         if (string.IsNullOrWhiteSpace(TestCaseId))
@@ -157,6 +162,13 @@ public sealed class TestCaseDefinition
         if (GoldenStandard is not null)
         {
             GoldenStandard.Validate(TestCaseId);
+        }
+
+        if (ResponseTimeout is not null && ResponseTimeout.Value <= TimeSpan.Zero)
+        {
+            throw new ArgumentException(
+                $"Testcase '{TestCaseId}' timeout must be greater than zero.",
+                nameof(ResponseTimeout));
         }
     }
 }
@@ -248,6 +260,11 @@ public sealed class RandomTestGroupDefinition
     public TestCaseComparisonMode ComparisonMode { get; init; } = TestCaseComparisonMode.StrictJson;
 
     /// <summary>
+    /// Optional timeout override applied to each generated testcase in this group.
+    /// </summary>
+    public TimeSpan? ResponseTimeout { get; init; }
+
+    /// <summary>
     /// Golden standard evaluator used to derive expected outputs.
     /// </summary>
     public GoldenStandardDefinition? GoldenStandard { get; init; }
@@ -271,6 +288,13 @@ public sealed class RandomTestGroupDefinition
             throw new ArgumentException(
                 $"Group '{groupId}' random testcase id prefix cannot be empty.",
                 nameof(TestCaseIdPrefix));
+        }
+
+        if (ResponseTimeout is not null && ResponseTimeout.Value <= TimeSpan.Zero)
+        {
+            throw new ArgumentException(
+                $"Group '{groupId}' random testcase timeout must be greater than zero.",
+                nameof(ResponseTimeout));
         }
 
         if (GoldenStandard is null)

@@ -21,6 +21,24 @@ public class ServerConfigurationLoaderTests
     }
 
     [Test]
+    public void LoadFromJson_TestCaseTimeout_ParsesSuccessfully()
+    {
+        string json = ValidConfigJson().Replace(
+            "\"expectedOutput\": { \"result\": 5 }",
+            """
+            "expectedOutput": { "result": 5 },
+                    "timeoutSeconds": 1.5
+            """,
+            StringComparison.Ordinal);
+
+        LoadedServerConfiguration loaded = TestServerConfigurationLoader.LoadFromJson(json);
+
+        Assert.That(
+            loaded.Suite.Groups[0].TestCases[0].ResponseTimeout,
+            Is.EqualTo(TimeSpan.FromSeconds(1.5)));
+    }
+
+    [Test]
     public void LoadFromJson_MissingOptionalValues_UsesDefaults()
     {
         const string json = """
@@ -329,6 +347,22 @@ public class ServerConfigurationLoaderTests
     }
 
     [Test]
+    public void LoadFromJson_TestCaseTimeoutMustBePositive_Throws()
+    {
+        string json = ValidConfigJson().Replace(
+            "\"expectedOutput\": { \"result\": 5 }",
+            """
+            "expectedOutput": { "result": 5 },
+                    "timeoutSeconds": 0
+            """,
+            StringComparison.Ordinal);
+
+        Assert.That(
+            () => TestServerConfigurationLoader.LoadFromJson(json),
+            Throws.TypeOf<ArgumentException>());
+    }
+
+    [Test]
     public void LoadFromJson_GoldenStandardMissingSourceFile_Throws()
     {
         const string json = """
@@ -375,6 +409,7 @@ public class ServerConfigurationLoaderTests
                   "count": 4,
                   "testCaseIdPrefix": "rnd-",
                   "seed": 123,
+                  "timeoutSeconds": 2.5,
                   "comparisonMode": "strict-json",
                   "goldenStandard": {
                     "sourceFile": "{{escapedPath}}"
@@ -403,9 +438,58 @@ public class ServerConfigurationLoaderTests
             Assert.That(group.Randomized!.Count, Is.EqualTo(4));
             Assert.That(group.Randomized.TestCaseIdPrefix, Is.EqualTo("rnd-"));
             Assert.That(group.Randomized.Seed, Is.EqualTo(123));
+            Assert.That(group.Randomized.ResponseTimeout, Is.EqualTo(TimeSpan.FromSeconds(2.5)));
             Assert.That(group.Randomized.GoldenStandard!.SourceFilePath, Is.EqualTo(Path.GetFullPath(sourcePath)));
             Assert.That(group.Randomized.InputGenerator!.Mode, Is.EqualTo(RandomInputGeneratorMode.Default));
             Assert.That(group.Randomized.InputGenerator.Default!.IntFields.Count, Is.EqualTo(2));
+        }
+        finally
+        {
+            if (File.Exists(sourcePath))
+            {
+                File.Delete(sourcePath);
+            }
+        }
+    }
+
+    [Test]
+    public void LoadFromJson_RandomTimeoutMustBePositive_Throws()
+    {
+        string sourcePath = CreateTempGoldenSourceFile();
+        string escapedPath = sourcePath.Replace("\\", "\\\\", StringComparison.Ordinal);
+
+        string json = $$"""
+        {
+          "server": {},
+          "suite": {
+            "groups": [
+              {
+                "id": "g-random",
+                "name": "Random",
+                "random": {
+                  "count": 4,
+                  "timeoutSeconds": 0,
+                  "goldenStandard": {
+                    "sourceFile": "{{escapedPath}}"
+                  },
+                  "inputGenerator": {
+                    "mode": "default",
+                    "intFields": [
+                      { "name": "a", "min": -5, "max": 5 }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+        """;
+
+        try
+        {
+            Assert.That(
+                () => TestServerConfigurationLoader.LoadFromJson(json),
+                Throws.TypeOf<ArgumentException>());
         }
         finally
         {

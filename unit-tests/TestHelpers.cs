@@ -30,7 +30,8 @@ internal static class TestHelpers
 
     public static TestSuiteDefinition CreateSumSuite(
         int expectedResult = 5,
-        TestCaseComparisonMode comparisonMode = TestCaseComparisonMode.StrictJson)
+        TestCaseComparisonMode comparisonMode = TestCaseComparisonMode.StrictJson,
+        TimeSpan? testcaseResponseTimeout = null)
     {
         return new TestSuiteDefinition
         {
@@ -47,7 +48,8 @@ internal static class TestHelpers
                             TestCaseId = "sum-001",
                             Input = Newtonsoft.Json.Linq.JObject.FromObject(new { a = 2, b = 3 }),
                             ExpectedOutput = Newtonsoft.Json.Linq.JObject.FromObject(new { result = expectedResult }),
-                            ComparisonMode = comparisonMode
+                            ComparisonMode = comparisonMode,
+                            ResponseTimeout = testcaseResponseTimeout
                         }
                     }
                 }

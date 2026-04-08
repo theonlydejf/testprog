@@ -420,6 +420,103 @@ public class ServerBehaviorTests
     }
 
     [Test]
+    public async Task TestCaseTimeoutOverride_TakesPrecedenceOverServerDefault()
+    {
+        await using TestServerHostHarness host = await TestServerHostHarness.StartAsync(
+            TestHelpers.CreateSumSuite(testcaseResponseTimeout: TimeSpan.FromMilliseconds(300)),
+            responseTimeout: TimeSpan.FromSeconds(5));
+
+        await using FramedTcpChannel channel = await FramedTcpChannel.ConnectAsync("127.0.0.1", host.TcpPort, CancellationToken.None);
+        await SendClientHelloAsync(channel, CancellationToken.None);
+
+        ProtocolEnvelope serverHello = await channel.ReceiveAsync(CancellationToken.None);
+        string token = ProtocolSerializer.DeserializePayload<ServerHelloPayload>(serverHello).SessionToken;
+
+        _ = await channel.ReceiveAsync(CancellationToken.None); // test-begin
+        _ = await channel.ReceiveAsync(CancellationToken.None); // testgroup-start
+        _ = await channel.ReceiveAsync(CancellationToken.None); // testcase
+
+        ProtocolEnvelope stopEnvelope = await TestHelpers.ReceiveWithTimeoutAsync(channel, TimeSpan.FromSeconds(1));
+        Assert.That(stopEnvelope.Type, Is.EqualTo(MessageTypes.Stop));
+        Assert.That(stopEnvelope.SessionToken, Is.EqualTo(token));
+
+        StopPayload stop = ProtocolSerializer.DeserializePayload<StopPayload>(stopEnvelope);
+        Assert.That(stop.ReasonCode, Is.EqualTo(StopReasonCodes.Timeout));
+    }
+
+    [Test]
+    public async Task RandomGroupTimeoutOverride_TakesPrecedenceOverServerDefault()
+    {
+        string sourcePath = CreateTempGoldenSourceFile();
+
+        try
+        {
+            TestSuiteDefinition suite = new()
+            {
+                Groups = new[]
+                {
+                    new TestGroupDefinition
+                    {
+                        GroupId = "random",
+                        DisplayName = "Random",
+                        Randomized = new RandomTestGroupDefinition
+                        {
+                            Count = 1,
+                            TestCaseIdPrefix = "rnd-",
+                            ResponseTimeout = TimeSpan.FromMilliseconds(300),
+                            ComparisonMode = TestCaseComparisonMode.StrictJson,
+                            GoldenStandard = new GoldenStandardDefinition
+                            {
+                                SourceFilePath = sourcePath
+                            },
+                            InputGenerator = new RandomInputGeneratorDefinition
+                            {
+                                Mode = RandomInputGeneratorMode.Default,
+                                Default = new DefaultRandomInputGeneratorDefinition
+                                {
+                                    IntFields = new[]
+                                    {
+                                        new RandomIntFieldDefinition { Name = "a", MinValue = 2, MaxValue = 2 },
+                                        new RandomIntFieldDefinition { Name = "b", MinValue = 3, MaxValue = 3 }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+
+            await using TestServerHostHarness host = await TestServerHostHarness.StartAsync(
+                suite,
+                responseTimeout: TimeSpan.FromSeconds(5));
+
+            await using FramedTcpChannel channel = await FramedTcpChannel.ConnectAsync("127.0.0.1", host.TcpPort, CancellationToken.None);
+            await SendClientHelloAsync(channel, CancellationToken.None);
+
+            ProtocolEnvelope serverHello = await channel.ReceiveAsync(CancellationToken.None);
+            string token = ProtocolSerializer.DeserializePayload<ServerHelloPayload>(serverHello).SessionToken;
+
+            _ = await channel.ReceiveAsync(CancellationToken.None); // test-begin
+            _ = await channel.ReceiveAsync(CancellationToken.None); // testgroup-start
+            _ = await channel.ReceiveAsync(CancellationToken.None); // testcase
+
+            ProtocolEnvelope stopEnvelope = await TestHelpers.ReceiveWithTimeoutAsync(channel, TimeSpan.FromSeconds(1));
+            Assert.That(stopEnvelope.Type, Is.EqualTo(MessageTypes.Stop));
+            Assert.That(stopEnvelope.SessionToken, Is.EqualTo(token));
+
+            StopPayload stop = ProtocolSerializer.DeserializePayload<StopPayload>(stopEnvelope);
+            Assert.That(stop.ReasonCode, Is.EqualTo(StopReasonCodes.Timeout));
+        }
+        finally
+        {
+            if (File.Exists(sourcePath))
+            {
+                File.Delete(sourcePath);
+            }
+        }
+    }
+
+    [Test]
     public async Task ClientStop_EndsSessionWithoutFurtherResults()
     {
         await using TestServerHostHarness host = await TestServerHostHarness.StartAsync(TestHelpers.CreateSumSuite());
